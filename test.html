@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>RoboCode Adventure</title>
+    <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+    <script src="https://unpkg.com/blockly/msg/de.js"></script>
+    <script src="https://unpkg.com/blockly/javascript_compressed.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/NeilFraser/JS-Interpreter@master/acorn_interpreter.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --primary: #38bdf8;
+            --success: #22c55e;
+            --locked: #334155;
+            --text: #f8fafc;
+        }
+
+        body { 
+            margin: 0; font-family: 'Segoe UI', sans-serif; 
+            background: var(--bg); color: var(--text);
+            overflow: hidden; height: 100vh; width: 100vw;
+        }
+
+        /* --- VIEW MANAGEMENT --- */
+        .view { display: none; height: 100vh; width: 100vw; }
+        .view.active { display: flex; }
+
+        /* --- LEVEL SELECTION VIEW --- */
+        #level-selection-view {
+            flex-direction: column; align-items: center; overflow-y: auto; padding: 40px;
+        }
+        .path-container { display: flex; flex-direction: column; gap: 15px; margin-top: 30px; width: 100%; max-width: 400px; padding-bottom: 100px; }
+        .level-row { display: flex; justify-content: space-between; position: relative; padding: 10px 20px; width: 100%; box-sizing: border-box; }
+        .level-row:nth-child(even) { flex-direction: row-reverse; }
+        
+        .level-btn { 
+            width: 60px; height: 60px; border-radius: 50%; border: 4px solid var(--locked);
+            background: #1e293b; color: #475569; font-weight: bold; cursor: not-allowed;
+            display: flex; align-items: center; justify-content: center; z-index: 2;
+            transition: all 0.3s;
+        }
+        .level-btn.active { border-color: var(--primary); color: var(--primary); cursor: pointer; transform: scale(1.1); box-shadow: 0 0 20px rgba(56,189,248,0.4); }
+        .level-btn.completed { background: var(--success); border-color: var(--success); color: white; cursor: pointer; }
+
+        /* --- PROGRAMMING VIEW --- */
+        #score-count {
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+        }
+
+        #programming-view { flex-direction: row; }
+        .left { width: 40%; display: flex; flex-direction: column; align-items: center; justify-content: center; border-right: 2px solid #334155; position: relative;}
+        .right { width: 60%; display: flex; flex-direction: column; background: #fff; }
+        
+        #grid { display: grid; grid-template-columns: repeat(8, 50px); grid-template-rows: repeat(8, 50px); gap: 1px; background: #475569; position: relative; border: 2px solid #475569;}
+        .cell { width: 50px; height: 50px; background: #1e293b; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        #robot { position: absolute; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 30px; transition: all 0.3s; z-index: 10; pointer-events: none;}
+        
+        #blocklyArea { flex: 1; position: relative; width: 100%; }
+        #blocklyDiv { position: absolute; top: 0; left: 0; bottom: 0; right: 0; }
+
+        .controls-top { padding: 10px; background: #e2e8f0; display: flex; gap: 10px; border-bottom: 1px solid #cbd5e1; }
+        
+        /* Container für die Buttons über und unter dem Grid */
+        .controls-game-top, .controls-game-bottom {
+            display: flex;
+            justify-content: center; /* Zentriert die Buttons horizontal */
+            gap: 15px;               /* Abstand zwischen den Buttons */
+            width: 100%;
+        }
+
+        .controls-game-top {
+            margin-bottom: 10px;    /* Abstand zum Level-Titel/Grid */
+        }
+
+        .controls-game-bottom {
+            margin-top: 20px;       /* Abstand vom Grid nach unten */
+        }
+
+        button { padding: 8px 15px; cursor: pointer; border: none; border-radius: 4px; font-weight: bold; }
+        .btn-green { background: var(--success); color: white; width: 120px; }
+        .btn-red { background: #ef4444; color: white; width: 120px; }
+        .btn-gray { background: #64748b; color: white; width: 120px; }
+        .btn-blue { background: var(--primary); color: #0f172a; width: 120px; }
+        .btn-prev-next { background: #64748b; color: white;width: 61px;}
+        /* Stil für gesperrte Buttons */
+        button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            filter: grayscale(1);
+        }
+
+        /* --- OVERLAYS --- */
+        #tutorial-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: none; justify-content: center; align-items: center; }
+        .tutorial-bubble { background: white; color: #1e293b; padding: 20px; border-radius: 12px; max-width: 300px; position: absolute; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .overlay-msg { position: absolute; top: 40%; left: 50%; transform: translateX(-50%); padding: 15px 30px; border-radius: 8px; display: none; z-index: 2000; font-weight: bold; color: white; text-align: center; min-width: 200px;}
+
+        /* --- MÜNZEN FÜR MÜNZANZEIGE --- */
+        .flying-coin {
+            position: fixed;
+            z-index: 9999;
+            font-size: 24px;
+            pointer-events: none;
+            transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Schöner Bogen-Effekt */
+            transform: scale(0);
+        }
+
+        @keyframes coin-spin {
+            0% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.3) rotate(180deg); }
+            100% { transform: scale(1) rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="level-selection-view" class="view active">
+    <div style="margin-top: 20px; text-align: center;">
+        <button onclick="resetFullGame()" style="
+            background-color: #ef4444; /* Rot für Warnung */
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            opacity: 0.8;
+        ">
+            🗑️ Spielstand zurücksetzen
+        </button>
+    </div>
+    <h1>RoboCode Adventure</h1>
+    <p style="color: #94a3b8">Wähle eine Herausforderung</p>
+    <div id="path-container" class="path-container"></div>
+</div>
+
+<div id="programming-view" class="view">
+    <div id="success" class="overlay-msg" style="background: var(--success);">Level bestanden! 🏝️</div>
+    <div id="warning" class="overlay-msg" style="background: #f59e0b;">Achtung! Ein Hai! 🦈</div>
+
+    <div class="left">
+        <div id="score-display" style="position: absolute; top: 15px; right: 20px; background: rgba(15, 23, 42, 0.8); padding: 10px 20px; border-radius: 20px; border: 2px solid var(--primary); z-index: 1000; display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 24px;">🪙</span>
+            <span id="score-count" style="font-size: 20px; font-weight: bold; color: var(--primary);">0</span>
+        </div>
+
+        <h2 id="level-title" style="color: var(--primary); margin: 0 0 10px 0;">Level 1</h2>
+
+        <div class="controls-game-top">
+            <button class="btn-green" onclick="runCode()">▶ START</button>
+            <button class="btn-red" onclick="reset()">↺ RESET</button>
+        </div>
+
+        <div id="grid">
+            <div id="robot">
+                <img src="images/robi_right.png">
+            </div>
+        </div>
+
+        <div class="controls-game-bottom">
+            <button id="btn-prev" class="btn-prev-next" onclick="changeLevel(-1)">◀◀</button>
+            <button class="btn-gray" onclick="showView('level-selection-view')">⬅ Übersicht</button>
+            <button class="btn-blue" onclick="chooseTutorialForHelpButton()">❓ Hilfe</button>
+            <button id="btn-next" class="btn-prev-next" onclick="changeLevel(1)">▶▶</button>
+        </div>
+    </div>
+
+    <div class="right">
+        <div class="controls-top">
+            <button class="btn-gray" onclick="saveBlocks()">💾 Speichern</button>
+            <button class="btn-gray" onclick="loadBlocks()">📂 Laden</button>
+            <input type="file" id="file-input" style="display: none;" accept=".xml">
+        </div>
+        <div id="blocklyArea">
+            <div id="blocklyDiv"></div>
+        </div>
+    </div>
+</div>
+
+<div id="tutorial-overlay">
+    <div id="tutorial-bubble" class="tutorial-bubble">
+        <h3 id="tut-title"></h3>
+        <p id="tut-text"></p>
+        <button class="btn-blue" style="float: right;" onclick="nextStep()">Weiter</button>
+    </div>
+</div>
+
+<script>
+    const gameData = {
+        unlockedLevel: parseInt(localStorage.getItem('unlocked_level')) || 1,
+        currentLevelNum: 1,
+        score: parseInt(localStorage.getItem('robo_score')) || 0, // Lädt gespeicherte Punkte
+        completedLevels: JSON.parse(localStorage.getItem('completed_levels')) || {}, // Speichert: { "levelId": Anzahl_Bestanden }
+        levels: [
+            // Level 1-5: Einführung Robi, Insel & Einführung grundlegende Steuerung
+            { id: 1, start: {x: 0, y: 7}, island: {x: 0, y: 5}, sharks: null, treasure: null, blocks: ['move_forward'] },
+            { id: 2, start: {x: 4, y: 7}, island: {x: 2, y: 5}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_left'] },
+            { id: 3, start: {x: 3, y: 7}, island: {x: 7, y: 6}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
+            { id: 4, start: {x: 0, y: 7}, island: {x: 3, y: 2}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
+            { id: 5, start: {x: 7, y: 5}, island: {x: 4, y: 7}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
+            
+            // Level 6-10: Einführung Hai & Vertiefung grundlegende Steuerung
+            { id: 6, start: {x: 3, y: 7}, island: {x: 3, y: 3}, sharks: [{x: 3, y: 4}, {x: 3, y: 5}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
+            { id: 7, island: {x: 3, y: 5}, sharks: [{x: 1, y: 7}, {x: 1, y: 6}, {x: 1, y: 5}, {x: 3, y: 4}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
+            { id: 8, island: {x: 2, y: 3}, sharks: [{x: 0, y: 4}, {x: 1, y: 6}, {x: 3, y: 6}, {x: 1, y: 4}, {x: 3, y: 4}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
+            { id: 9, island: {x: 2, y: 3}, sharks: [{x: 0, y: 4}, {x: 1, y: 6}, {x: 3, y: 6}, {x: 1, y: 4}, {x: 3, y: 4}, {x: 0, y: 6}, {x: 2, y: 6}, {x: 4, y: 4}, {x: 5, y: 4}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
+            { id: 10, start: {x: 4, y: 4}, island: {x: 4, y: 2}, sharks: [{x: 3, y: 3}, {x: 4, y: 3}, {x: 5, y: 3}, {x: 3, y: 4}, {x: 5, y: 4}, {x: 3, y: 5}, {x: 5, y: 5}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
+    
+            // Level 11-15: Einführung Schatz, neuer Block "Schatz aufheben" & Vertiefung grundlegende Steuerung
+            { id: 11, island: {x: 0, y: 5}, sharks: null, treasure: {x: 0, y: 3}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] },
+            { id: 12, island: {x: 4, y: 7}, sharks: [{x: 2, y: 6}, {x: 2, y: 7}], treasure: {x: 0, y: 5}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] },
+            { id: 13, island: {x: 0, y: 5}, sharks: [{x: 1, y: 5}, {x: 1, y: 6}, {x: 1, y: 7}], treasure: {x: 2, y: 7}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] },
+            { id: 14, start: {x: 3, y: 4}, island: {x: 2, y: 3}, sharks: [{x: 4, y: 3}, {x: 2, y: 5}], treasure: {x: 4, y: 5}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] }, 
+            { id: 15, start: {x: 3, y: 7}, island: {x: 3, y: 3}, sharks: [{x: 2, y: 4}, {x: 4, y: 4}], treasure: {x: 3, y: 0}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] },
+
+            // Level 16-20: Einführung Zählschleife
+            { id: 16, start: {x: 3, y: 7}, island: {x: 3, y: 3}, sharks: [{x: 2, y: 4}, {x: 4, y: 4}], treasure: {x: 3, y: 0}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_repeat_ext'] },
+            { id: 17, island: {x: 4, y: 2}, sharks: [{x: 1, y: 7}, {x: 1, y: 6}, {x: 1, y: 5}, {x: 1, y: 4}, {x: 1, y: 3}], treasure: {x: 0, y: 2}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] },
+            { id: 18, island: {x: 4, y: 2}, sharks: [{x: 1, y: 7}, {x: 1, y: 6}, {x: 1, y: 5}, {x: 1, y: 4}, {x: 1, y: 3}], treasure: {x: 0, y: 2}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_repeat_ext'] },
+            { id: 19, start: {x: 7, y: 7}, island: {x: 6, y: 7}, sharks: [{x: 0, y: 5}, {x: 2, y: 5}, {x: 3, y: 5}, {x: 4, y: 5}, {x: 5, y: 5}, {x: 6, y: 5}, {x: 7, y: 5}], treasure: {x: 4, y: 4}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] },
+            { id: 20, start: {x: 7, y: 7}, island: {x: 6, y: 7}, sharks: [{x: 0, y: 5}, {x: 2, y: 5}, {x: 3, y: 5}, {x: 4, y: 5}, {x: 5, y: 5}, {x: 6, y: 5}, {x: 7, y: 5}], treasure: {x: 4, y: 4}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_repeat_ext'] },
+            
+            // Level 21-25: Vertiefung Zählschleife
+            { id: 21, start: {x: 0, y: 0}, island: {x: 5, y: 5}, sharks: [{x: 0, y: 1}, {x: 1, y: 1}, {x: 2, y: 1}, {x: 3, y: 1}, {x: 4, y: 1}, {x: 5, y: 1}], treasure: {x: 6, y: 0}, blocks: ['move_forward', 'turn_right', 'turn_left', 'collect_treasure', 'controls_repeat_ext'] },
+            { id: 22, start: {x: 0, y: 0}, island: {x: 3, y: 3}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_right', 'turn_left', 'controls_repeat_ext'] },
+            { id: 23, start: {x: 1, y: 1}, island: {x: 1, y: 2}, sharks: [{x: 1, y: 3}, {x: 2, y: 1}, {x: 2, y: 2}, {x: 0, y: 1}, {x: 0, y: 2}], treasure: {x: 1, y: 6},  blocks: ['move_forward', 'turn_right', 'tunr_left', 'collect_treasure', 'controls_repeat_ext'] },
+            { id: 24, start: {x: 0, y: 0}, island: {x: 4, y: 3}, sharks: [{x: 2, y: 0}, {x: 2, y: 1}, {x: 2, y: 2}, {x: 2, y: 3}, {x: 2, y: 4}], treasure: {x: 7, y: 0}, blocks: ['move_forward', 'turn_right', 'collect_treasure', 'controls_repeat_ext'] },
+            { id: 25, start: {x: 0, y: 0}, island: {x: 6, y: 0}, sharks: [{x: 1, y: 1}, {x: 3, y: 1}, {x: 5, y: 1}], treasure: {x: 1, y: 2}, blocks: ['move_forward', 'turn_right', 'turn_left', 'collect_treasure', 'controls_repeat_ext'] },
+
+            // Level 26-30: Einführung Bedingungsschleife, Insel- & Schatz-Sensoren
+            { id: 26, start: {x: 2, y: 7}, island: {x: 2, y: 0}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 0, y: 3}, {x: 3, y: 5}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island'] }, 
+            { id: 27, start: {x: 0, y: 3}, island: {x: 7, y: 3}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 6, y: 2}, {x: 3, y: 5}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island'] }, 
+            { id: 28, start: {x: 5, y: 7}, island: {x: 0, y: 3}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 6, y: 2}, {x: 3, y: 5}], treasure: {x: 5, y: 3}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure'] },             
+            { id: 29, start: {x: 4, y: 5}, island: {x: 0, y: 0}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 6, y: 2}, {x: 3, y: 5}], treasure: {x: 0, y: 6}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure'] },                         
+            { id: 30, start: {x: 3, y: 6}, island: {x: 5, y: 7}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 6, y: 2}, {x: 3, y: 5}], treasure: {x: 5, y: 0}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure'] },             
+
+            // Level 31-35: Einführung Verzweigung, Hai-Sensoren
+            { id: 31, island: {x: 0, y: 0}, sharks: null, treasure: {x: 0, y: 3}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_if', 'on_treasure', 'on_island', 'controls_whileUntil'] },
+            { id: 32, island: {x: 4, y: 1}, sharks: [{x: 0, y: 0}], treasure: null, blocks: ['move_forward', 'turn_right', 'controls_whileUntil', 'on_island', 'controls_if', 'shark_front'] },
+            { id: 33, start: {x: 3, y: 7}, island: {x: 3, y: 0}, sharks: [{x: 3, y: 4}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure', 'shark_front', 'controls_if'] },     
+            { id: 34, start: {x: 3, y: 7}, island: {x: 3, y: 0}, sharks: [{x: 3, y: 2}, {x: 3, y: 6}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure', 'shark_front', 'controls_if'] },               
+            { id: 35, island: {x: 4, y: 0}, sharks: [{x: 2, y: 0}], treasure: {x: 0, y: 0}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'on_treasure', 'on_island', 'controls_if', 'shark_front', 'controls_whileUntil'] },
+
+
+        
+
+
+
+
+
+
+
+            { id: 40, island: {x: 7, y: 0}, treasure: {x: 7, y: 7}, sharks: [{x: 1, y: 0}, {x: 1, y: 1}, {x: 1, y: 2}, {x: 1, y: 3}, {x: 1, y: 4}, {x: 1, y: 6}, {x: 1, y: 7},
+                {x: 3, y: 1}, {x: 3, y: 2}, {x: 3, y: 3}, {x: 3, y: 4}, {x: 3, y: 5}, {x: 3, y: 6}, {x: 3, y: 7},
+                {x: 5, y: 0}, {x: 5, y: 1}, {x: 5, y: 2}, {x: 5, y: 3}, {x: 5, y: 4}, {x: 5, y: 5}, {x: 5, y: 6}],
+                blocks: ['move_forward', 'turn_left', 'turn_right', 'controls_repeat_ext', 'controls_whileUntil', 'controls_if', 'shark_front', 'shark_left', 'shark_right', 'on_treasure', 'on_island', 'math_number', 'logic_operation', 'logic_negate'] },
+
+  
+
+        ]
+    };
+    // --- GLOBALE VARIABLEN ---
+    // Positionieren von Robi beim Programmstart
+    let workspace;
+    let robo = { x: 0, y: 7, dir: 270 };
+    //Variablen für den Interpreter-Status
+    let myInterpreter = null;
+    let runnerTimeout = null;
+    // Aktuelles Level-Abbild (für Handling des Schatzes nötig!)
+    let currentLevelConfig = null;
+
+
+    // --- VIEW LOGIK ---
+    function showView(viewId) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+
+        if(viewId === 'programming-view') {
+        updateScoreDisplay(); // Punktestand aktualisieren, wenn man ins Spiel geht
+        if(workspace) {
+            setTimeout(() => {
+                Blockly.svgResize(workspace);
+            }, 100);
+        }
+    }
+    }
+
+    // --- LEVEL SELECTION ---
+    function renderLevelPath() {
+        const container = document.getElementById('path-container');
+        container.innerHTML = '';
+        // Anzahl der Level festlegen
+        const total = 40;
+        const perRow = 5;
+        
+        // Erstellen der Level-Übersicht
+        for (let r = 0; r < Math.ceil(total/perRow); r++) {
+            const row = document.createElement('div');
+            row.className = 'level-row';
+            for (let c = 0; c < perRow; c++) {
+                const num = (r * perRow) + c + 1;
+                if (num > total) break;
+                const btn = document.createElement('button');
+                btn.className = 'level-btn';
+                btn.innerText = num;
+                
+                //Überprüfung, ob das Level schon freigeschaltet ist
+                if (num < gameData.unlockedLevel) btn.classList.add('completed');
+                else if (num === gameData.unlockedLevel) btn.classList.add('active');
+                
+                // Event-Handling
+                btn.onclick = () => {
+                    if(num <= gameData.unlockedLevel) startLevel(num);
+                };
+                row.appendChild(btn);
+            }
+            container.appendChild(row);
+        }
+    }
+
+    function startLevel(num) {
+   		gameData.currentLevelNum = parseInt(num);
+   		
+        const config = gameData.levels.find(l => l.id === gameData.currentLevelNum) || gameData.levels[0];
+    
+        // Tiefe Kopie erstellen, damit wir 'treasure' löschen können, ohne das Original zu zerstören
+        currentLevelConfig = JSON.parse(JSON.stringify(config));
+
+   		document.getElementById('level-title').innerText = "Level " + gameData.currentLevelNum;
+  	 	initGrid(currentLevelConfig);
+        updateToolbox(config.blocks);
+    
+  		// WICHTIG: Beim Level-Wechsel löschen wir den alten Code (optional)
+    	// Wenn du möchtest, dass der Code auch beim Levelwechsel bleibt, kommentiere workspace.clear() aus.
+    	if(workspace) workspace.clear(); 
+    
+   		showView('programming-view');
+   		reset(); // Setzt nur den Roboter auf 0,0
+
+        setTimeout(() => {
+            updateNavigationButtons();
+        }, 50);
+        
+
+   		if(!localStorage.getItem('firstTimeDone')) {
+        		setTimeout(() => {
+                    chooseTutorialForStorage();
+        		    localStorage.setItem('firstTimeDone', 'true');
+                }, 350);
+        }
+        updateNavigationButtons();
+
+    }
+
+    function chooseTutorialForStorage() {
+        const num = gameData.currentLevelNum;
+        if (num === 1 && !localStorage.getItem('firstTimeDoneTut1', 'true')) {
+            startTutorial("intro");
+        	localStorage.setItem('firstTimeDoneTut1', 'true');
+        } 
+        else if (num === 2 && !localStorage.getItem('firstTimeDoneTut2', 'true')) {
+            startTutorial("turnLeft");
+            localStorage.setItem('firstTimeDoneTut2', 'true');
+        }
+        else if (num === 3 && !localStorage.getItem('firstTimeDoneTut3', 'true')) {
+            startTutorial("turnRight");
+        	localStorage.setItem('firstTimeDoneTut3', 'true');
+        }
+        else if (num === 5 && !localStorage.getItem('firstTimeDoneTut4', 'true')) {
+            startTutorial("sharks");
+        	localStorage.setItem('firstTimeDoneTut4', 'true');
+        }
+    }
+
+    function chooseTutorialForHelpButton() {
+        const num = gameData.currentLevelNum;
+        if (num === 1) {
+            startTutorial("intro");
+        } 
+        else if (num === 2) {
+            startTutorial("turnLeft");
+        }
+        else if (num === 3) {
+            startTutorial("turnRight");
+        }
+        else if (num === 5) {
+            startTutorial("sharks");
+        }
+    }
+
+    // --- BLOCKLY INITIALISIERUNG ---
+    Blockly.defineBlocksWithJsonArray([
+        // Standard-Blöcke
+        { "type": "move_forward", "message0": "⬆ vorwärts", "previousStatement": null, "nextStatement": null, "colour": 230 },
+        { "type": "turn_left", "message0": "↩ links drehen", "previousStatement": null, "nextStatement": null, "colour": 290 },
+        { "type": "turn_right", "message0": "↪ rechts drehen", "previousStatement": null, "nextStatement": null, "colour": 290 },
+        { "type": "collect_treasure", "message0": "Schatz aufheben", "previousStatement": null, "nextStatement": null, "colour": 45 },
+        // Sensoren-Blöcke
+        { "type": "shark_front", "message0": "Weg vorne frei 🦈⬆?", "output": "Boolean", "colour": 160, "tooltip": "Gibt wahr zurück, wenn vor Robi kein Hai ist." },
+        { "type": "shark_left", "message0": "Weg links frei 🦈⬆?", "output": "Boolean", "colour": 160, "tooltip": "Gibt wahr zurück, wenn links von Robi kein Hai ist." },
+        { "type": "shark_right", "message0": "Weg rechts frei 🦈⬆?", "output": "Boolean", "colour": 160, "tooltip": "Gibt wahr zurück, wenn rechts von Robi kein Hai ist." },
+        { "type": "on_island", "message0": "Auf einer Insel?", "output": "Boolean", "colour": 160, "tooltip": "Gibt wahr zurück, wenn Robi auf einer Insel steht." },
+        { "type": "on_treasure", "message0": "Auf einem Schatz?", "output": "Boolean", "colour": 160, "tooltip": "Gibt wahr zurück, wenn Robi auf einem Schatz steht." }
+    ]);
+
+    // WICHTIG: Die neue Zuweisung für Blockly v10/v11
+    const javascriptGenerator = javascript.javascriptGenerator;
+
+    javascriptGenerator.forBlock['move_forward'] = function(block) {
+        return 'moveForward();\n';
+    };
+    javascriptGenerator.forBlock['turn_left'] = function(block) {
+        return 'turnLeft();\n';
+    };
+    javascriptGenerator.forBlock['turn_right'] = function(block) {
+        return 'turnRight();\n';
+    };
+    javascriptGenerator.forBlock['collect_treasure'] = function(block) {
+        return 'collectTreasure();\n';
+    };
+    javascriptGenerator.forBlock['shark_front'] = function(block) {
+    // Der String 'sharkFront()' ist der Funktionsname, den der Interpreter aufruft
+    return ['sharkFront()', javascript.Order.FUNCTION_CALL];
+    };
+    javascriptGenerator.forBlock['shark_left'] = function(block) {
+    // Der String 'sharkLeft()' ist der Funktionsname, den der Interpreter aufruft
+    return ['sharkLeft()', javascript.Order.FUNCTION_CALL];
+    };
+    javascriptGenerator.forBlock['shark_right'] = function(block) {
+    // Der String 'sharkRight()' ist der Funktionsname, den der Interpreter aufruft
+    return ['sharkRight()', javascript.Order.FUNCTION_CALL];
+    };
+    javascriptGenerator.forBlock['on_island'] = function(block) {
+    return ['onIsland()', javascript.Order.FUNCTION_CALL];
+    };
+    javascriptGenerator.forBlock['on_treasure'] = function(block) {
+        return ['onTreasure()', javascript.Order.FUNCTION_CALL];
+    };
+
+    // Funktionen für eigene Blöcke
+    function collectTreasure() {
+        const config = currentLevelConfig;
+        
+        // 1. Prüfung: Steht Robi auf dem Feld, auf dem der Schatz laut Daten liegt?
+        if (config && config.treasure && robo.x === config.treasure.x && robo.y === config.treasure.y) {
+            
+            // --- ERFOLG: Schatz ist da! ---
+            config.treasure = null; // In der Kopie löschen
+            
+            const cells = document.querySelectorAll('.cell');
+            const index = robo.y * 8 + robo.x;
+            const img = cells[index].querySelector('img');
+            if (img) img.remove();
+            
+            coinRain(); // Dein Goldregen-Effekt
+            
+        } else {
+            // --- FEHLER: Hier liegt kein Schatz! ---
+            
+            // Wir nutzen dein vorhandenes Warn-Overlay
+            const warningBox = document.getElementById('warning');
+            
+            // Wir ändern kurz den Text der Box
+            warningBox.innerText = "Hier ist kein Schatz! ❌💎";
+            warningBox.style.display = 'block';
+            
+            // Nach 2 Sekunden blenden wir die Nachricht wieder aus
+            setTimeout(() => {
+                warningBox.style.display = 'none';
+                // Optional: Text wieder auf den Standard zurücksetzen
+                warningBox.innerText = "Achtung! Ein Hai! 🦈";
+            }, 2000);
+        }
+    }
+    
+    // Funktionen für die Sensoren
+    function sharkFront() {
+        const config = currentLevelConfig;
+        if (!config) return false;
+
+        // 1. Richtung normalisieren (0, 90, 180, 270)
+        let d = (robo.dir % 360 + 360) % 360;
+        let nx = robo.x, ny = robo.y;
+
+        // 2. Zielkoordinate bestimmen
+        if (d === 0) nx++;      // rechts
+        else if (d === 90) ny++; // unten
+        else if (d === 180) nx--; // links
+        else if (d === 270) ny--; // oben
+
+        // 3. Rand-Check (Damit er nicht vom Feld fällt)
+        if (nx < 0 || nx > 7 || ny < 0 || ny > 7) return false;
+
+        // 4. Hai-Check
+        const hasShark = config.sharks && config.sharks.some(s => s.x === nx && s.y === ny);
+        
+        // Weg ist frei, wenn dort KEIN Hai ist
+        return !hasShark;
+    }
+
+    function sharkLeft() {
+        const config = currentLevelConfig;
+        if (!config) return false;
+
+        // 1. Richtung normalisieren (0, 90, 180, 270)
+        let d = (robo.dir % 360 + 360) % 360;
+        let nx = robo.x, ny = robo.y;
+
+        // 2. Richtung für "Links" bestimmen
+        let leftDir = (d - 90 + 360) % 360;
+
+        // 3. Zielkoordinate bestimmen
+        if (leftDir === 0) nx++;      // rechts
+        else if (leftDir === 90) ny++; // unten
+        else if (leftDir === 180) nx--; // links
+        else if (leftDir === 270) ny--; // oben
+
+        // 4. Rand-Check (Damit er nicht vom Feld fällt)
+        if (nx < 0 || nx > 7 || ny < 0 || ny > 7) return false;
+
+        // 5. Hai-Check
+        const hasShark = config.sharks && config.sharks.some(s => s.x === nx && s.y === ny);
+        
+        // Weg ist frei, wenn links KEIN Hai ist
+        return !hasShark;
+    }
+
+    function sharkRight() {
+        const config = currentLevelConfig;
+        if (!config) return false;
+
+        // 1. Richtung normalisieren (0, 90, 180, 270)
+        let d = (robo.dir % 360 + 360) % 360;
+        let nx = robo.x, ny = robo.y;
+
+        // 2. Richtung für "Rechts" bestimmen
+        let rightDir = (d + 90) % 360;
+
+        // 3. Zielkoordinate bestimmen
+        if (rightDir === 0) nx++;      // rechts
+        else if (rightDir === 90) ny++; // unten
+        else if (rightDir === 180) nx--; // links
+        else if (rightDir === 270) ny--; // oben
+
+        // 3. Rand-Check (Damit er nicht vom Feld fällt)
+        if (nx < 0 || nx > 7 || ny < 0 || ny > 7) return false;
+
+        // 4. Hai-Check
+        const hasShark = config.sharks && config.sharks.some(s => s.x === nx && s.y === ny);
+        
+        // Weg ist frei, wenn rechts KEIN Hai ist
+        return !hasShark;
+    }
+
+    function onIsland() {
+        const config = currentLevelConfig;
+        if (!config) return false;
+        
+        // Prüfen, ob x und y exakt mit der Insel übereinstimmen
+        return (robo.x === config.island.x && robo.y === config.island.y);
+    }
+
+    function onTreasure() {
+        const config = currentLevelConfig;
+        if (!config || !config.treasure) return false;
+        
+        // Prüfen, ob x und y exakt mit dem Schatz übereinstimmen
+        return (robo.x === config.treasure.x && robo.y === config.treasure.y);
+    }    
+
+    function updateToolbox(blockTypes) {
+        const contents = blockTypes.map(t => {
+            if (t === 'controls_repeat_ext') {
+                return {
+                    "kind": "block",
+                    "type": "controls_repeat_ext",
+                    "inputs": {
+                        "TIMES": {
+                            "shadow": { "type": "math_number", "fields": { "NUM": 3 } }
+                        }
+                    }
+                };
+            }
+            if (t === 'controls_whileUntil') {
+            return {
+                "kind": "block",
+                "type": "controls_whileUntil",
+                "fields": {
+                    "MODE": "UNTIL" // Setzt das Dropdown standardmäßig auf "bis"
+                }
+            };
+        }
+            return { "kind": "block", "type": t };
+        });
+
+        workspace.updateToolbox({ "kind": "flyoutToolbox", "contents": contents });
+    }
+
+    // --- GAME LOGIK ---
+    function initGrid(config) {
+    		const grid = document.getElementById('grid');
+   		 grid.querySelectorAll('.cell').forEach(c => c.remove());
+    
+    		for (let i = 0; i < 64; i++) {
+     	  		 const x = i % 8; const y = Math.floor(i / 8);
+     			   const cell = document.createElement('div');
+     			   cell.className = 'cell';
+        
+        		// Insel platzieren
+        		if (x === config.island.x && y === config.island.y) cell.innerText = '🏝️';
+
+                // 2. Schatz
+                else if (config.treasure && x === config.treasure.x && y === config.treasure.y) {
+                    const img = document.createElement('img');
+                    img.src = 'images/treasure.png';
+                    img.style.width = '40px';  
+                    img.style.height = '40px';
+                    cell.appendChild(img);
+                }
+        
+       			 // PRÜFUNG: Ist diese Koordinate (x,y) in der Liste der Haie?
+       			 if (config.sharks) {
+           			 const hasShark = config.sharks.some(s => s.x === x && s.y === y);
+            			if (hasShark) cell.innerText = '🦈';
+       			 }
+        
+        		grid.appendChild(cell);
+   		 }
+    	}
+
+    function reset() {
+        // 1. Die Arbeitskopie des Levels wieder vom Original-Bauplan wiederherstellen
+        const originalConfig = gameData.levels.find(l => l.id === gameData.currentLevelNum) || gameData.levels[0];
+        currentLevelConfig = JSON.parse(JSON.stringify(originalConfig));
+
+   	 	// 2. Roboter wieder auf Start zurücksetzen
+        const startPos = originalConfig.start || { x: 0, y: 7 };
+        robo = { x: startPos.x, y: startPos.y, dir: 270 };   
+
+        // 3. Das Grid neu zeichnen (damit der Schatz wieder erscheint)
+        initGrid(currentLevelConfig);
+        updateUI();
+    
+  	  	// 4. Meldungen verstecken
+  	  	document.getElementById('success').style.display = 'none';
+ 	   	document.getElementById('warning').style.display = 'none';
+    
+ 	   	// 5. Die gelbe Markierung von den Blöcken entfernen
+ 	   	if(workspace) {
+ 	   	    workspace.highlightBlock(null);
+ 	   	}
+    }
+
+    function updateUI() {
+        const r = document.getElementById('robot');
+        r.style.left = (robo.x * 51) + 'px';
+        r.style.top = (robo.y * 51) + 'px';
+        r.style.transform = `rotate(${robo.dir}deg)`;
+    }
+
+    // Die eigentliche Bewegungs-Logik (ausgelagert aus runCode)
+    function moveForwardAction() {
+        const config = currentLevelConfig;
+        let d = (robo.dir % 360 + 360) % 360;
+        let nx = robo.x, ny = robo.y;
+        if (d === 0) nx++; else if (d === 90) ny++; else if (d === 180) nx--; else if (d === 270) ny--;
+        
+        const hitShark = config.sharks && config.sharks.some(s => s.x === nx && s.y === ny);
+        if (hitShark) {
+            document.getElementById('warning').style.display = 'block';
+            myInterpreter = null; // Stoppt den Interpreter bei Fehler
+            return;
+        }
+        robo.x = Math.max(0, Math.min(7, nx));
+        robo.y = Math.max(0, Math.min(7, ny));
+        updateUI();
+    }
+
+    function runCode() {
+        reset();
+        
+        // Code generieren mit dem neuen Generator-Objekt
+        const code = javascript.javascriptGenerator.workspaceToCode(workspace);
+        
+        if (!code) return; // Falls kein Code da ist, nichts tun
+
+        try {
+            myInterpreter = new Interpreter(code, (interpreter, scope) => {
+                interpreter.setProperty(scope, 'moveForward', interpreter.createNativeFunction(moveForwardAction));
+                interpreter.setProperty(scope, 'turnLeft', interpreter.createNativeFunction(() => { robo.dir -= 90; updateUI(); }));
+                interpreter.setProperty(scope, 'turnRight', interpreter.createNativeFunction(() => { robo.dir += 90; updateUI(); }));
+                interpreter.setProperty(scope, 'collectTreasure', interpreter.createNativeFunction(() => { collectTreasure(); }));
+                interpreter.setProperty(scope, 'sharkFront', interpreter.createNativeFunction(() => { return sharkFront(); }));
+                interpreter.setProperty(scope, 'sharkLeft', interpreter.createNativeFunction(() => { return sharkLeft(); }));
+                interpreter.setProperty(scope, 'sharkRight', interpreter.createNativeFunction(() => { return sharkRight(); }));
+                interpreter.setProperty(scope, 'onIsland', interpreter.createNativeFunction(() => { return onIsland(); }));
+                interpreter.setProperty(scope, 'onTreasure', interpreter.createNativeFunction(() => { return onTreasure(); }));
+            });
+            runStep();
+        } catch (e) {
+            console.error("Interpreter Fehler:", e);
+        }
+    }
+
+    function runStep() {
+        if (myInterpreter && myInterpreter.step()) {
+            // Ein Schritt ausführen, dann 200ms warten
+            runnerTimeout = setTimeout(runStep, 50);
+        } else {
+            // Wenn fertig, Sieg prüfen
+            checkWin();
+        }
+    }
+
+    function checkWin() {
+        const config = currentLevelConfig;
+        const levelId = gameData.currentLevelNum;
+        if (!config) return;
+
+        // Bedingung 1: Roboter ist auf der Insel
+        const onIsland = (robo.x === config.island.x && robo.y === config.island.y);
+        
+        // Bedingung 2: Es gibt keinen Schatz mehr im Level-Objekt
+        const treasureCollected = (config.treasure === null);
+
+        if (onIsland && treasureCollected) {
+            // --- PUNKTE LOGIK ---
+            // Wie oft wurde dieses Level schon geschafft? (Standard: 0)
+            let timesCompleted = gameData.completedLevels[levelId] || 0;
+            let pointsEarned = 0;
+
+            if (timesCompleted === 0) {
+                pointsEarned = 5;
+                spawnCoins(pointsEarned);
+
+            } else if (timesCompleted === 1) {
+                pointsEarned = 1;
+                spawnCoins(pointsEarned);
+
+            } else {
+                pointsEarned = 0;
+            }
+
+            // Punkte gutschreiben
+            gameData.score += pointsEarned;
+            // Zähler für dieses Level erhöhen
+            gameData.completedLevels[levelId] = timesCompleted + 1;
+
+            // Im LocalStorage speichern
+            localStorage.setItem('robo_score', gameData.score);
+            localStorage.setItem('completed_levels', JSON.stringify(gameData.completedLevels));
+
+            // UI aktualisieren
+            updateScoreDisplay()
+
+            celebration();
+            document.getElementById('success').style.display = 'block';
+            if(gameData.currentLevelNum === gameData.unlockedLevel) {
+                gameData.unlockedLevel++;
+                updateNavigationButtons();
+                renderLevelPath();
+            }
+        } else if (onIsland && !treasureCollected) {
+            // Kleiner Hinweis, falls man den Schatz vergessen hat
+            const warningBox = document.getElementById('warning');
+            warningBox.innerText = "Du musst zuerst den Schatz einsammeln!";
+            warningBox.style.display = 'block';
+            // Nachricht nach 2 Sekunden wieder ausblenden
+            setTimeout(() => {
+                        warningBox.style.display = 'none';
+                        // Optional: Text wieder auf den Standard zurücksetzen
+                        warningBox.innerText = "Achtung! Ein Hai! 🦈";
+                    }, 2000);      
+        }
+    }
+
+    // --- BUTTONS ZUM LEVEL WECHSELN LOGIK ---
+    function changeLevel(delta) {
+        const newLevel = gameData.currentLevelNum + delta;
+        // Prüfen, ob das Level in den gameData.levels existiert
+        const levelExists = gameData.levels.find(l => l.id === newLevel);
+        // Man kann das Level nur öffnen, wenn das vorherige abgeschlossen ist
+        if (levelExists && newLevel <= gameData.unlockedLevel) {
+            startLevel(newLevel);
+        }
+    }
+
+    function updateNavigationButtons() {
+        const btnPrev = document.getElementById('btn-prev');
+        const btnNext = document.getElementById('btn-next');
+        
+        if (!btnPrev || !btnNext) return;
+
+        console.log("Current:", gameData.currentLevelNum, "Unlocked:", gameData.unlockedLevel);
+
+        // Zurück-Button: Deaktivieren, wenn wir in Level 1 sind
+        btnPrev.disabled = (gameData.currentLevelNum <= 1);
+        
+        // Weiter-Button: Nur aktiv, wenn das nächste Level existiert UND freigeschaltet ist
+        const nextLevelExists = gameData.levels.find(l => l.id === gameData.currentLevelNum + 1);
+        const isUnlocked = gameData.unlockedLevel > gameData.currentLevelNum;
+        
+        btnNext.disabled = !(nextLevelExists && isUnlocked);
+    }
+
+    // Hilfsfunktion zum Aktualisieren der Anzeige
+    function updateScoreDisplay() {
+        // Falls gameData.score noch nicht definiert ist, nutze 0
+        const currentScore = gameData.score || 0;
+        const element = document.getElementById('score-count');
+        if (element) {
+            element.innerText = currentScore;
+        }
+    }
+
+    // --- TUTORIAL LOGIK ---
+    let tutStep = 0;
+    let currentTutSet = [];
+    const tutData = {
+        "intro": [
+            { t: "Das Ziel", m: "Programmiere Robi so, dass er die Insel erreicht.", p: {top: '50%', left: '10%'} },
+            { t: "Die Programmier-Oberfläche", m: "Ziehe Blöcke von hier mit gedrückter linker Maustaste in den weißen Bereich rechts. Puzzle mehrere Blöcke aneinander, um ein Programm zu erstellen.", p: {top: '20%', left: '40%'} },
+            { t: "Speichere dein Programm", m: "Klicke auf den Speichern-Button, um dein Programm auf dem Computer zu speichern.", p: {top: '10%', left: '35%'} },
+            { t: "Öffne ein bestehendes Programm", m: "Klicke auf den Laden-Button, um ein bestehendes Programm von deinem Computer zu öffnen.", p: {top: '10%', left: '45%'} },
+            { t: "Starte dein Programm", m: "Klicke auf den Play-Button, um dein Programm zu testen.", p: {top: '30%', left: '10%'} },
+            { t: "Setze die Welt zurück", m: "Klicke auf den Reset-Button, um die Robi-Welt auf Start zurückzusetzen.", p: {top: '30%', left: '20%'} },
+            { t: "Gehe zur Level-Übersicht", m: "Klicke auf den Übersicht-Button, um zur Level-Übersicht zurück zu gelangen.", p: {top: '55%', left: '10%'} },
+            { t: "Wechsle die Level direkt", m: "Klicke auf ◀◀ oder ▶▶, um direkt zum vorherigen oder nächsten Level zu gelangen. Du kannst nur zum nächsten Level gehen, wenn du das aktuelle Level abgeschlossen hast.", p: {top: '45%', left: '20%'} },
+            { t: "Falls du Hilfe brauchst", m: "Klicke auf den Hilfe-Button, um dieses Tutorial erneut aufzurufen.", p: {top: '55%', left: '15%'} },
+        ],
+        "turnLeft": [
+            { t: "Der Block 'links drehen'", m: "Verwende den Block 'links drehen', um zur Insel zu gelangen. Bedenke, dass es immer um links aus der Sicht von Robi geht!", p: {top: '40%', left: '50%'}}
+        ],
+        "turnRight": [
+            { t: "Der Block 'rechts drehen'", m: "Verwende den Block 'rechts drehen', um zur Insel zu gelangen. Bedenke, dass es immer um rechts aus der Sicht von Robi geht!", p: {top: '40%', left: '50%'}}
+        ],
+        "sharks": [
+            { t: "Achtung Haie!", m: "In diesem Level gibt es Haie. Robi kann nicht auf ein Feld gehen, auf dem sich ein Hai befindet! Robi muss um die Haie herum gehen.", p: {top: '50%', left: '10%'} }
+        ],
+        "treasure": [
+            { t: "Schatzsuche", m: "In diesem Level gibt es einen Schatz! Immer wenn es einen Schatz gibt, musst du ihn aufheben, bevor du zur Insel gehst.", p: {top: '50%', left: '10%'} },
+            { t: "Aufheben-Block", m: "Nutze den neuen Block 'Schatz aufheben', wenn du auf dem Schatz stehst.", p: {top: '30%', left: '50%'} }
+        ]
+    }
+
+    function startTutorial(setName) {
+        currentTutSet = tutData[setName];
+        if (!currentTutSet) return;
+
+        tutStep = 0;
+        document.getElementById('tutorial-overlay').style.display = 'flex';
+        updateTutBubble();
+    }
+
+    function nextStep() {
+        tutStep++;
+        if(tutStep < currentTutSet.length) {
+            updateTutBubble();
+        } else {
+            document.getElementById('tutorial-overlay').style.display = 'none';
+        } 
+    }
+
+    function updateTutBubble() {
+        const d = currentTutSet[tutStep];
+        document.getElementById('tut-title').innerText = d.t;
+        document.getElementById('tut-text').innerText = d.m;
+        const b = document.getElementById('tutorial-bubble');
+        b.style.top = d.p.top; b.style.left = d.p.left;
+    }
+
+    // --- INITIALISIERUNG ---
+    window.onload = () => {
+        // 1. Daten laden
+        gameData.unlockedLevel = parseInt(localStorage.getItem('unlocked_level')) || 1;
+        gameData.score = parseInt(localStorage.getItem('robo_score')) || 0;
+        
+        // 2. Pfad zeichnen
+        renderLevelPath();
+        updateScoreDisplay();   // Zeigt den gespeicherten Punktestand an
+        
+        // 3. Blockly EINMALIG injizieren
+        workspace = Blockly.inject('blocklyDiv', { 
+            trashcan: true, 
+            renderer: 'zelos',
+            toolbox: { kind: "flyoutToolbox", contents: [] }, 
+            zoom: {
+                controls: true,    // Zeigt die +/- Buttons an
+                wheel: true,       // Erlaubt Zoomen mit dem Mausrad
+                startScale: 1.0,   // Startgröße
+                maxScale: 3,
+                minScale: 0.3,
+                scaleSpeed: 1.2,
+                pinch: true        // Erlaubt Zoomen auf Tablets/Touch
+            },
+        });
+
+        // 4. NavigationButtons initialisieren
+        updateNavigationButtons();
+
+        // 5. Startansicht
+        showView('level-selection-view');
+    };
+
+    function saveBlocks() { 
+        if (!workspace) return;
+
+        // 1. Den Workspace in XML-Text umwandeln
+        const xml = Blockly.Xml.workspaceToDom(workspace);
+        const xmlText = Blockly.Xml.domToPrettyText(xml);
+
+        // 2. Eine Datei (Blob) daraus erstellen
+        const blob = new Blob([xmlText], {type: 'text/xml'});
+        const a = document.createElement('a');
+        
+        // Dateiname generieren (z.B. Roby_Level_5.xml)
+        const filename = "Roby_Level_" + gameData.currentLevelNum + ".xml";
+
+        // 3. Den Download "vortäuschen"
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Aufräumen
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+    }
+
+    function loadBlocks() {
+        document.getElementById('file-input').click();
+    }
+
+    // Datei-Upload
+    document.getElementById('file-input').addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const xmlText = e.target.result;
+            try {
+                // Den Text in ein XML-Objekt umwandeln
+                const xml = Blockly.utils.xml.textToDom(xmlText);
+                
+                // Den aktuellen Workspace leeren (optional, aber empfohlen)
+                workspace.clear();
+                
+                // Die neuen Blöcke in den Workspace laden
+                Blockly.Xml.domToWorkspace(xml, workspace);
+                
+            } catch (error) {
+                console.error("Fehler beim Laden der XML:", error);
+                alert("Hoppla! Diese Datei konnte nicht gelesen werden.");
+            }
+            
+            // Input zurücksetzen, damit dieselbe Datei erneut gewählt werden kann
+            event.target.value = '';
+        };
+        
+        reader.readAsText(file);
+    });
+
+    // --- JUBEL LOGIK ---
+    // Konfetti bei Lösen eines Levels
+    function celebration() {
+        // Konfetti von links und rechts schießen
+        var duration = 3 * 1000; // 2 Sekunden lang
+        var end = Date.now() + duration;
+
+        (function frame() {
+            // Konfetti von links
+            confetti({
+                particleCount: 3,
+                angle: 60,
+                spread: 55,
+                origin: { x: 0 },
+                colors: ['#22c55e', '#3b82f6', '#facc15'] // Deine Markenfarben
+            });
+            // Konfetti von rechts
+            confetti({
+                particleCount: 3,
+                angle: 120,
+                spread: 55,
+                origin: { x: 1 },
+                colors: ['#22c55e', '#3b82f6', '#facc15']
+            });
+
+            if (Date.now() < end) {
+                requestAnimationFrame(frame);
+            }
+        }());
+    }
+
+    // Münzen fliegen von Robi zur Münzanzeige
+    function spawnCoins(amount) {
+        const scoreDisplay = document.getElementById('score-display');
+        const roboElement = document.getElementById('robot'); 
+        
+        if (!scoreDisplay || !roboElement) return;
+
+        const endRect = scoreDisplay.getBoundingClientRect();
+        const startRect = roboElement.getBoundingClientRect();
+
+        // Die Schleife läuft jetzt 'amount' mal
+        for (let i = 0; i < amount; i++) {
+            setTimeout(() => {
+                const coin = document.createElement('div');
+                coin.className = 'flying-coin';
+                coin.innerText = '🪙';
+                
+                coin.style.left = startRect.left + 'px';
+                coin.style.top = startRect.top + 'px';
+                coin.style.transform = 'scale(1)';
+                
+                document.body.appendChild(coin);
+
+                void coin.offsetWidth; 
+
+                coin.style.left = (endRect.left + 10) + 'px';
+                coin.style.top = (endRect.top + 10) + 'px';
+                coin.style.transform = 'scale(0.5)';
+                coin.style.opacity = '0.7';
+
+                setTimeout(() => {
+                    coin.remove();
+                }, 800);
+            }, i * 150); 
+        }
+    }
+
+    // Münzregen beim Heben eines Schatzes
+    function coinRain() {
+        var duration = 2 * 1000;
+        var animationEnd = Date.now() + duration;
+
+        (function frame() {
+            var timeLeft = animationEnd - Date.now();
+            if (timeLeft <= 0) return;
+
+            confetti({
+                particleCount: 2, // Wenige Partikel pro Frame für einen "Regen"-Effekt
+                startVelocity: 0,
+                gravity: 1.2,     // Etwas schwerer, damit es wie Metall wirkt
+                ticks: 200,
+                origin: {
+                    x: Math.random(),
+                    y: -0.1       // Startet leicht außerhalb des oberen Rands
+                },
+                // Verschiedene Gold- und Gelbtöne für den Glanz-Effekt
+                colors: ['#FFD700', '#FDB931', '#E8AA14', '#B8860B'],
+                shapes: ['square'], // Quadrate wirken wie fallende Goldplättchen
+                scalar: 1.2         // Etwas größer als normales Konfetti
+            });
+
+            requestAnimationFrame(frame);
+        }());
+    }
+
+    function resetFullGame() {
+        // Sicherheitsabfrage, damit man nicht aus Versehen alles löscht
+        const confirmation = confirm("Möchtest du wirklich deinen gesamten Spielstand (Punkte und Level) löschen? Dies kann nicht rückgängig gemacht werden!");
+        
+        if (confirmation) {
+            // 1. Alle im Browser gespeicherten Daten dieses Spiels löschen
+            localStorage.clear();
+            
+            // 2. Optional: Falls du nur bestimmte Daten löschen willst (statt alles):
+            // localStorage.removeItem('robo_score');
+            // localStorage.removeItem('unlocked_level');
+            // localStorage.removeItem('completed_levels');
+            // localStorage.removeItem('firstTimeDone');
+
+            // 3. Seite neu laden, um alle Variablen (gameData) auf den Standardwert zu setzen
+            location.reload();
+        }
+    }
+
+</script>
+</body>
+</html>
