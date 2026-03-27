@@ -194,32 +194,32 @@
         completedLevels: JSON.parse(localStorage.getItem('completed_levels')) || {}, // Speichert: { "levelId": Anzahl_Bestanden }
         levels: [
             // Level 1-5: Einführung Robi, Insel & Einführung grundlegende Steuerung
-            { id: 1, start: {x: 0, y: 7}, island: {x: 0, y: 5}, sharks: null, treasure: null, blocks: ['move_forward'] },
-            { id: 2, start: {x: 4, y: 7}, island: {x: 2, y: 5}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_left'] },
-            { id: 3, start: {x: 3, y: 7}, island: {x: 7, y: 6}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
+ //           { id: 1, start: {x: 0, y: 7}, island: {x: 0, y: 5}, sharks: null, treasure: null, blocks: ['move_forward'], tutorials: ['intro'] },
+ //           { id: 2, start: {x: 4, y: 7}, island: {x: 2, y: 5}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_left'], tutorials: ['turnLeft'] },
+            { id: 3, start: {x: 3, y: 7}, island: {x: 7, y: 6}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'], tutorials: ['turnRight'] },
             { id: 4, start: {x: 0, y: 7}, island: {x: 3, y: 2}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
             { id: 5, start: {x: 7, y: 5}, island: {x: 4, y: 7}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
             
             // Level 6-10: Einführung Hai & Vertiefung grundlegende Steuerung
-            { id: 6, start: {x: 3, y: 7}, island: {x: 3, y: 3}, sharks: [{x: 3, y: 4}, {x: 3, y: 5}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
+            { id: 6, start: {x: 3, y: 7}, island: {x: 3, y: 3}, sharks: [{x: 3, y: 4}, {x: 3, y: 5}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'], tutorials: ['sharks'] },
             { id: 7, island: {x: 3, y: 5}, sharks: [{x: 1, y: 7}, {x: 1, y: 6}, {x: 1, y: 5}, {x: 3, y: 4}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
             { id: 8, island: {x: 2, y: 3}, sharks: [{x: 0, y: 4}, {x: 1, y: 6}, {x: 3, y: 6}, {x: 1, y: 4}, {x: 3, y: 4}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
             { id: 9, island: {x: 2, y: 3}, sharks: [{x: 0, y: 4}, {x: 1, y: 6}, {x: 3, y: 6}, {x: 1, y: 4}, {x: 3, y: 4}, {x: 0, y: 6}, {x: 2, y: 6}, {x: 4, y: 4}, {x: 5, y: 4}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
             { id: 10, start: {x: 4, y: 4}, island: {x: 4, y: 2}, sharks: [{x: 3, y: 3}, {x: 4, y: 3}, {x: 5, y: 3}, {x: 3, y: 4}, {x: 5, y: 4}, {x: 3, y: 5}, {x: 5, y: 5}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
     
             // Level 11-15: Einführung Schatz, neuer Block "Schatz aufheben" & Vertiefung grundlegende Steuerung
-            { id: 11, island: {x: 0, y: 5}, sharks: null, treasure: {x: 0, y: 3}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] },
+            { id: 11, island: {x: 0, y: 5}, sharks: null, treasure: {x: 0, y: 3}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'], tutorials: ['treasure'] },
             { id: 12, island: {x: 4, y: 7}, sharks: [{x: 2, y: 6}, {x: 2, y: 7}], treasure: {x: 0, y: 5}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] },
             { id: 13, island: {x: 0, y: 5}, sharks: [{x: 1, y: 5}, {x: 1, y: 6}, {x: 1, y: 7}], treasure: {x: 2, y: 7}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] },
             { id: 14, start: {x: 3, y: 4}, island: {x: 2, y: 3}, sharks: [{x: 4, y: 3}, {x: 2, y: 5}], treasure: {x: 4, y: 5}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] }, 
             { id: 15, start: {x: 3, y: 7}, island: {x: 3, y: 3}, sharks: [{x: 2, y: 4}, {x: 4, y: 4}], treasure: {x: 3, y: 0}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] },
 
             // Level 16-20: Einführung Zählschleife
-            { id: 16, start: {x: 3, y: 7}, island: {x: 3, y: 3}, sharks: [{x: 2, y: 4}, {x: 4, y: 4}], treasure: {x: 3, y: 0}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_repeat_ext'] },
+            { id: 16, start: {x: 3, y: 7}, island: {x: 3, y: 3}, sharks: [{x: 2, y: 4}, {x: 4, y: 4}], treasure: {x: 3, y: 0}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_repeat_ext'], tutorials: ['zählschleife'] },
             { id: 17, island: {x: 4, y: 2}, sharks: [{x: 1, y: 7}, {x: 1, y: 6}, {x: 1, y: 5}, {x: 1, y: 4}, {x: 1, y: 3}], treasure: {x: 0, y: 2}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] },
-            { id: 18, island: {x: 4, y: 2}, sharks: [{x: 1, y: 7}, {x: 1, y: 6}, {x: 1, y: 5}, {x: 1, y: 4}, {x: 1, y: 3}], treasure: {x: 0, y: 2}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_repeat_ext'] },
+            { id: 18, island: {x: 4, y: 2}, sharks: [{x: 1, y: 7}, {x: 1, y: 6}, {x: 1, y: 5}, {x: 1, y: 4}, {x: 1, y: 3}], treasure: {x: 0, y: 2}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_repeat_ext'], tutorials: ['zählschleife-2']  },
             { id: 19, start: {x: 7, y: 7}, island: {x: 6, y: 7}, sharks: [{x: 0, y: 5}, {x: 2, y: 5}, {x: 3, y: 5}, {x: 4, y: 5}, {x: 5, y: 5}, {x: 6, y: 5}, {x: 7, y: 5}], treasure: {x: 4, y: 4}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] },
-            { id: 20, start: {x: 7, y: 7}, island: {x: 6, y: 7}, sharks: [{x: 0, y: 5}, {x: 2, y: 5}, {x: 3, y: 5}, {x: 4, y: 5}, {x: 5, y: 5}, {x: 6, y: 5}, {x: 7, y: 5}], treasure: {x: 4, y: 4}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_repeat_ext'] },
+            { id: 20, start: {x: 7, y: 7}, island: {x: 6, y: 7}, sharks: [{x: 0, y: 5}, {x: 2, y: 5}, {x: 3, y: 5}, {x: 4, y: 5}, {x: 5, y: 5}, {x: 6, y: 5}, {x: 7, y: 5}], treasure: {x: 4, y: 4}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_repeat_ext'], tutorials: ['zählschleife-2']  },
             
             // Level 21-25: Vertiefung Zählschleife
             { id: 21, start: {x: 0, y: 0}, island: {x: 5, y: 5}, sharks: [{x: 0, y: 1}, {x: 1, y: 1}, {x: 2, y: 1}, {x: 3, y: 1}, {x: 4, y: 1}, {x: 5, y: 1}], treasure: {x: 6, y: 0}, blocks: ['move_forward', 'turn_right', 'turn_left', 'collect_treasure', 'controls_repeat_ext'] },
@@ -229,7 +229,7 @@
             { id: 25, start: {x: 0, y: 0}, island: {x: 6, y: 0}, sharks: [{x: 1, y: 1}, {x: 3, y: 1}, {x: 5, y: 1}], treasure: {x: 1, y: 2}, blocks: ['move_forward', 'turn_right', 'turn_left', 'collect_treasure', 'controls_repeat_ext'] },
 
             // Level 26-30: Einführung Bedingungsschleife, Insel- & Schatz-Sensoren
-            { id: 26, start: {x: 2, y: 7}, island: {x: 2, y: 0}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 0, y: 3}, {x: 3, y: 5}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island'] }, 
+            { id: 1, start: {x: 2, y: 7}, island: {x: 2, y: 0}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 0, y: 3}, {x: 3, y: 5}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island'], tutorials: ['bedingungsschleife', 'on_island'] }, 
             { id: 27, start: {x: 0, y: 3}, island: {x: 7, y: 3}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 6, y: 2}, {x: 3, y: 5}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island'] }, 
             { id: 28, start: {x: 5, y: 7}, island: {x: 0, y: 3}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 6, y: 2}, {x: 3, y: 5}], treasure: {x: 5, y: 3}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure'] },             
             { id: 29, start: {x: 4, y: 5}, island: {x: 0, y: 0}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 6, y: 2}, {x: 3, y: 5}], treasure: {x: 0, y: 6}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure'] },                         
@@ -338,55 +338,45 @@
    		showView('programming-view');
    		reset(); // Setzt nur den Roboter auf 0,0
 
+        // NavigationButtons aktualisieren
         setTimeout(() => {
             updateNavigationButtons();
         }, 50);
         
+        // Überprüfen, ob Tutorial existiert & dieses ggf. anzeigen
+        setTimeout(() => {
+            chooseTutorialForStorage();
+        }, 500);
 
-   		if(!localStorage.getItem('firstTimeDone')) {
-        		setTimeout(() => {
-                    chooseTutorialForStorage();
-        		    localStorage.setItem('firstTimeDone', 'true');
-                }, 350);
-        }
         updateNavigationButtons();
-
     }
 
     function chooseTutorialForStorage() {
-        const num = gameData.currentLevelNum;
-        if (num === 1 && !localStorage.getItem('firstTimeDoneTut1', 'true')) {
-            startTutorial("intro");
-        	localStorage.setItem('firstTimeDoneTut1', 'true');
-        } 
-        else if (num === 2 && !localStorage.getItem('firstTimeDoneTut2', 'true')) {
-            startTutorial("turnLeft");
-            localStorage.setItem('firstTimeDoneTut2', 'true');
-        }
-        else if (num === 3 && !localStorage.getItem('firstTimeDoneTut3', 'true')) {
-            startTutorial("turnRight");
-        	localStorage.setItem('firstTimeDoneTut3', 'true');
-        }
-        else if (num === 5 && !localStorage.getItem('firstTimeDoneTut4', 'true')) {
-            startTutorial("sharks");
-        	localStorage.setItem('firstTimeDoneTut4', 'true');
-        }
+        const level = gameData.levels.find(l => l.id === gameData.currentLevelNum);
+        if (!level || !level.tutorials) return;
+
+        // Wir gehen alle Tutorials durch, die für dieses Level gelistet sind
+        level.tutorials.forEach(tutKey => {
+            const storageKey = `tut_completed_${tutKey}`;
+            
+            // Nur automatisch starten, wenn es noch nie gesehen wurde
+            if (!localStorage.getItem(storageKey)) {
+                startTutorial(tutKey);
+                localStorage.setItem(storageKey, 'true');
+            }
+        });
     }
 
     function chooseTutorialForHelpButton() {
-        const num = gameData.currentLevelNum;
-        if (num === 1) {
-            startTutorial("intro");
-        } 
-        else if (num === 2) {
-            startTutorial("turnLeft");
+        const level = gameData.levels.find(l => l.id === gameData.currentLevelNum);
+        if (!level || !level.tutorials || level.tutorials.length === 0) {
+            alert("In diesem Level gibt es keine speziellen Tipps. Du schaffst das!");
+            return;
         }
-        else if (num === 3) {
-            startTutorial("turnRight");
-        }
-        else if (num === 5) {
-            startTutorial("sharks");
-        }
+
+        // Wenn es mehrere Tutorials gibt, zeigen wir das wichtigste (das letzte in der Liste) 
+        // oder wir starten einfach das erste erneut.
+        startTutorial(level.tutorials[0]);
     }
 
     // --- BLOCKLY INITIALISIERUNG ---
@@ -453,7 +443,29 @@
             const img = cells[index].querySelector('img');
             if (img) img.remove();
             
-            coinRain(); // Dein Goldregen-Effekt
+            // Wie oft wurde genau dieses Level schon BEENDET?
+            let timesCompleted = gameData.completedLevels[gameData.currentLevelNum] || 0;
+            let treasurePoints = 0;
+
+            if (timesCompleted === 0) {
+                treasurePoints = 2; // Erstes Mal: Volle Beute
+            } else if (timesCompleted === 1) {
+                treasurePoints = 1; // Zweites Mal: Kleiner Bonus
+            } else {
+                treasurePoints = 0; // Ab dem dritten Mal: Nur noch Ehre, kein Gold
+            }
+
+            // Punkte nur addieren und anzeigen, wenn es welche gibt
+            if (treasurePoints > 0) {
+                gameData.score += treasurePoints;
+                localStorage.setItem('robo_score', gameData.score);
+                
+                spawnCoins(treasurePoints); // Münz-Animation
+                updateScoreDisplay();       // Anzeige oben rechts
+            } else {
+                // Optional: Ein kleiner Text-Hinweis, dass es keine Punkte mehr gibt
+                console.log("Level bereits oft gelöst, keine Schatzpunkte mehr.");
+            }
             
         } else {
             // --- FEHLER: Hier liegt kein Schatz! ---
@@ -758,6 +770,8 @@
             document.getElementById('success').style.display = 'block';
             if(gameData.currentLevelNum === gameData.unlockedLevel) {
                 gameData.unlockedLevel++;
+                localStorage.setItem('unlocked_level', gameData.unlockedLevel);
+
                 updateNavigationButtons();
                 renderLevelPath();
             }
@@ -830,10 +844,10 @@
             { t: "Falls du Hilfe brauchst", m: "Klicke auf den Hilfe-Button, um dieses Tutorial erneut aufzurufen.", p: {top: '55%', left: '15%'} },
         ],
         "turnLeft": [
-            { t: "Der Block 'links drehen'", m: "Verwende den Block 'links drehen', um zur Insel zu gelangen. Bedenke, dass es immer um links aus der Sicht von Robi geht!", p: {top: '40%', left: '50%'}}
+            { t: "Der Block 'links drehen'", m: "Verwende den Block 'links drehen', um Robi nach links zu drehen. Bedenke, dass es immer um links aus der Sicht von Robi geht!", p: {top: '40%', left: '50%'}}
         ],
         "turnRight": [
-            { t: "Der Block 'rechts drehen'", m: "Verwende den Block 'rechts drehen', um zur Insel zu gelangen. Bedenke, dass es immer um rechts aus der Sicht von Robi geht!", p: {top: '40%', left: '50%'}}
+            { t: "Der Block 'rechts drehen'", m: "Verwende den Block 'rechts drehen', um Robi nach rechts zu drehen. Bedenke, dass es immer um rechts aus der Sicht von Robi geht!", p: {top: '40%', left: '50%'}}
         ],
         "sharks": [
             { t: "Achtung Haie!", m: "In diesem Level gibt es Haie. Robi kann nicht auf ein Feld gehen, auf dem sich ein Hai befindet! Robi muss um die Haie herum gehen.", p: {top: '50%', left: '10%'} }
@@ -841,6 +855,20 @@
         "treasure": [
             { t: "Schatzsuche", m: "In diesem Level gibt es einen Schatz! Immer wenn es einen Schatz gibt, musst du ihn aufheben, bevor du zur Insel gehst.", p: {top: '50%', left: '10%'} },
             { t: "Aufheben-Block", m: "Nutze den neuen Block 'Schatz aufheben', wenn du auf dem Schatz stehst.", p: {top: '30%', left: '50%'} }
+        ],
+        "zählschleife": [
+            { t: "Zählschleifen", m: "Im letzten Level musstest du sehr oft denselben Befehl hintereinander ausführen. Eine Zählschleife hilft dir, wenn du oft denselben Befehl hintereinander ausführen musst. Du gibst dafür im Schleifen-Kopf an, wie oft etwas wiederholt werden soll. In der Schleife sagst du, was wiederholt werden soll.", p: {top: '40%', left: '40%'} },
+            { t: "Der Zählschleifen-Block", m: "Nutze den Block 'Zählschleife', wenn du denselben Befehl mehrmals hintereinander ausführen willst. Verwende den Block nicht, wenn etwas nur einmal wiederholt wird.", p: {top: '50%', left: '55%'} },
+        ],
+        "zählschleife-2": [
+            { t: "Übe mit Zählschleifen", m: "Nutze eine Zählschleife.", p: {top: '40%', left: '40%'} }
+        ],
+        "bedingungsschleife": [
+            { t: "Bedingungsschleifen", m: "Bedinungsschleifen helfen, deine Programme noch besser auf verschiedene Situationen anzupassen. Bei einer Bedinungsschleife gibst du im Schleifen-Kopf eine Bedingung an. Es wird immer wieder überprüft, ob die Bedingung erfüllt ist. Solange die Bedingung erfüllt ist, werden die Befehle in der Schleife wiederholt.", p: {top: '40%', left: '40%'} },
+            { t: "Der Bedingungsschleifen-Block", m: "Nutze den Block 'Bedingungsschleife', wenn ein Befehl so oft wiederholt werden soll, wie eine Bedinung erfüllt ist. Zum Beispiel: Solange der Weg vor Robi frei ist, gehe 1 Schritt vorwärts.", p: {top: '40%', left: '40%'} },
+        ],
+        "on_island": [
+
         ]
     }
 
