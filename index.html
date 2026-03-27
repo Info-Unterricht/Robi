@@ -194,8 +194,8 @@
         completedLevels: JSON.parse(localStorage.getItem('completed_levels')) || {}, // Speichert: { "levelId": Anzahl_Bestanden }
         levels: [
             // Level 1-5: Einführung Robi, Insel & Einführung grundlegende Steuerung
- //           { id: 1, start: {x: 0, y: 7}, island: {x: 0, y: 5}, sharks: null, treasure: null, blocks: ['move_forward'], tutorials: ['intro'] },
- //           { id: 2, start: {x: 4, y: 7}, island: {x: 2, y: 5}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_left'], tutorials: ['turnLeft'] },
+            { id: 1, start: {x: 0, y: 7}, island: {x: 0, y: 5}, sharks: null, treasure: null, blocks: ['move_forward'], tutorials: ['intro'] },
+            { id: 2, start: {x: 4, y: 7}, island: {x: 2, y: 5}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_left'], tutorials: ['turnLeft'] },
             { id: 3, start: {x: 3, y: 7}, island: {x: 7, y: 6}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'], tutorials: ['turnRight'] },
             { id: 4, start: {x: 0, y: 7}, island: {x: 3, y: 2}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
             { id: 5, start: {x: 7, y: 5}, island: {x: 4, y: 7}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
@@ -229,7 +229,7 @@
             { id: 25, start: {x: 0, y: 0}, island: {x: 6, y: 0}, sharks: [{x: 1, y: 1}, {x: 3, y: 1}, {x: 5, y: 1}], treasure: {x: 1, y: 2}, blocks: ['move_forward', 'turn_right', 'turn_left', 'collect_treasure', 'controls_repeat_ext'] },
 
             // Level 26-30: Einführung Bedingungsschleife, Insel- & Schatz-Sensoren
-            { id: 1, start: {x: 2, y: 7}, island: {x: 2, y: 0}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 0, y: 3}, {x: 3, y: 5}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island'], tutorials: ['bedingungsschleife', 'on_island'] }, 
+            { id: 26, start: {x: 2, y: 7}, island: {x: 2, y: 0}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 0, y: 3}, {x: 3, y: 5}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island'], tutorials: ['bedingungsschleife', 'on_island'] }, 
             { id: 27, start: {x: 0, y: 3}, island: {x: 7, y: 3}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 6, y: 2}, {x: 3, y: 5}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island'] }, 
             { id: 28, start: {x: 5, y: 7}, island: {x: 0, y: 3}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 6, y: 2}, {x: 3, y: 5}], treasure: {x: 5, y: 3}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure'] },             
             { id: 29, start: {x: 4, y: 5}, island: {x: 0, y: 0}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 6, y: 2}, {x: 3, y: 5}], treasure: {x: 0, y: 6}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure'] },                         
