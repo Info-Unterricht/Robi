@@ -2,12 +2,15 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Robis Programmier-Abenteuer</title>
+    <title>Robi Adventure</title>
     <script src="https://unpkg.com/blockly/blockly.min.js"></script>
     <script src="https://unpkg.com/blockly/msg/de.js"></script>
     <script src="https://unpkg.com/blockly/javascript_compressed.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/NeilFraser/JS-Interpreter@master/acorn_interpreter.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <link rel="stylesheet" href="shop-design.css">
+
     <style>
         :root {
             --bg: #0f172a;
@@ -31,7 +34,7 @@
         #level-selection-view {
             flex-direction: column; align-items: center; overflow-y: auto; padding: 40px;
         }
-        .path-container { display: flex; flex-direction: column; gap: 15px; margin-top: 30px; width: 100%; max-width: 400px; padding-bottom: 100px; }
+        .path-container { display: flex; flex-direction: column; gap: 15px; margin-top: 30px; width: 100%; max-width: 500px; padding-bottom: 100px; }
         .level-row { display: flex; justify-content: space-between; position: relative; padding: 10px 20px; width: 100%; box-sizing: border-box; }
         .level-row:nth-child(even) { flex-direction: row-reverse; }
         
@@ -40,6 +43,9 @@
             background: #1e293b; color: #475569; font-weight: bold; cursor: not-allowed;
             display: flex; align-items: center; justify-content: center; z-index: 2;
             transition: all 0.3s;
+            flex-shrink: 0; 
+            box-sizing: border-box; 
+            padding: 0;
         }
         .level-btn.active { border-color: var(--primary); color: var(--primary); cursor: pointer; transform: scale(1.1); box-shadow: 0 0 20px rgba(56,189,248,0.4); }
         .level-btn.completed { background: var(--success); border-color: var(--success); color: white; cursor: pointer; }
@@ -111,147 +117,366 @@
             50% { transform: scale(1.3) rotate(180deg); }
             100% { transform: scale(1) rotate(360deg); }
         }
-    </style>
+
+        /* --- MÜNZEN FÜR QUIZ-LEVELS --- */
+        @keyframes floatUpCentered {
+            0% { 
+                transform: translate(-50%, -50%) translateY(0); /* Start: Exakt Mitte */
+                opacity: 1; 
+            }
+            100% { 
+                transform: translate(-50%, -50%) translateY(-150px); /* Ziel: 150px weiter oben */
+                opacity: 0; 
+            }
+        }
+
+        .floating-points-centered {
+            position: fixed;
+            /* Exakt mittig auf dem Bildschirm positionieren */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%); /* WICHTIG: Gleicht die eigene Breite/Höhe aus */
+
+            /* Styling für die Münzen */
+            color: #eab308; /* Goldgelb */
+            font-weight: bold;
+            font-size: 48px; /* Schön groß in der Mitte */
+            text-shadow: 0 4px 10px rgba(0,0,0,0.3); /* Etwas Schatten für bessere Lesbarkeit */
+
+            /* Die neue Animation anwenden */
+            animation: floatUpCentered 1.8s ease-out forwards;
+
+            /* Verhindert, dass man versehentlich darauf klickt */
+            pointer-events: none;
+            z-index: 10000; /* Ganz oben, über allem anderen */
+        }
+
+        /* --- Shop-Button --- */
+        .shop-open-btn {
+            background: #f59e0b; /* Gold-Gelb */
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+        }
+
+        .shop-open-btn:hover {
+            background: #d97706;
+            transform: scale(1.05);
+        }
+
+        .score-display {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #fbbf24;
+        }
+
+        /* --- Spur-Effekte --- */
+        .rainbow-trail-particle {
+            position: absolute;
+            width: 8px;            /* Etwas kleiner für dichte Linien */
+            height: 8px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 5;
+            transition: transform 2.0s ease-out, opacity 0.5s ease-out;
+            
+            /* Optional: Ein leichter Leucht-Effekt (Glow) */
+            box-shadow: 0 0 3px rgba(255, 255, 255, 0.5);
+        }
+
+        .trail-bubble {
+            position: absolute;
+            pointer-events: none;
+            z-index: 12;
+            transition: transform 1.5s ease-out, opacity 1.2s ease-out;
+            opacity: 0.8;
+            filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5));
+        }
+
+        .trail-stardust-particle {
+            position: absolute;
+            pointer-events: none;
+            z-index: 11;
+            border-radius: 50%; /* Runde Punkte wirken wie Staub */
+            transition: transform 1s ease-out, opacity 0.8s ease-in;
+            
+            /* Der entscheidende Leuchteffekt */
+            box-shadow: 0 0 10px 2px rgba(255, 215, 0, 0.8);
+            
+            /* Optional: Ein Funkeln hinzufügen */
+            animation: sparkle 0.5s infinite alternate;
+        }
+
+        @keyframes sparkle {
+            from { filter: brightness(1); transform: scale(1); }
+            to { filter: brightness(1.5); transform: scale(1.2); }
+        }
+
+        .trail-matrix-particle {
+            position: absolute;
+            pointer-events: none;
+            z-index: 11;
+            color: #00ff41; /* Klassisches Matrix-Grün */
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            text-shadow: 0 0 8px #00ff41; /* Der digitale Glow */
+            transition: transform 0.7s ease-in, opacity 0.7s ease-out;
+            opacity: 1;
+        }
+
+        /* Optional: Ein leichtes Flackern für den alten Monitor-Look */
+        @keyframes matrix-flicker {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .trail-matrix-particle {
+            animation: matrix-flicker 0.2s infinite;
+        }
+
+        .trail-footprint {
+            position: absolute;
+            width: 10px;
+            height: 16px;
+            background-color: #92806d;
+            border-radius: 20% 20% 80% 80%;
+            z-index: 10;
+            pointer-events: none;
+            transition: opacity 1.5s ease;
+            transform-origin: center center;
+            display: block;
+        }
+
+        .trail-footprint::after {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: 1px;
+            width: 6px;
+            height: 6px;
+            background-color: inherit;
+            border-radius: 50%;
+        }
+   </style>
 </head>
 <body>
 
-<div id="level-selection-view" class="view active">
-    <div style="margin-top: 20px; text-align: center;">
-        <button onclick="resetFullGame()" style="
-            background-color: #ef4444; /* Rot für Warnung */
-            color: white;
-            padding: 8px 15px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 12px;
-            opacity: 0.8;
-        ">
-            🗑️ Spielstand zurücksetzen
-        </button>
+    <div id="level-selection-view" class="view active">
+        <div style="margin-top: 20px; text-align: center; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+            <button onclick="exportSavegame()" class="btn-blue" style="font-size: 12px; width: auto;">
+                💾 Spielstand speichern
+            </button>
+
+            <button onclick="document.getElementById('import-input').click()" class="btn-gray" style="font-size: 12px; width: auto;">
+                📂 Spielstand laden
+            </button>
+            <input type="file" id="import-input" style="display: none;" accept=".json" onchange="importSavegame(event)">
+            
+            <button onclick="resetFullGame()" style="background-color: #ef4444; color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 12px; opacity: 0.8;">
+                🗑️ Spielstand zurücksetzen
+            </button>
+
+            <div class="menu-header" style="display: flex; justify-content: space-between; width: 100%; max-width: 400px; align-items: center;">
+                <div class="score-display">🪙 <span id="main-score">0</span></div>
+                <button class="shop-open-btn" onclick="openShop()">🛒 Shop</button>
+            </div>
+            
+        </div>
+        <h1>Robi Adventure</h1>
+        <p style="color: #94a3b8">Wähle eine Herausforderung</p>
+        <div id="path-container" class="path-container"></div>
     </div>
-    <h1>Robis Programmier-Abenteuer</h1>
-    <p style="color: #94a3b8">Wähle eine Herausforderung</p>
-    <div id="path-container" class="path-container"></div>
-</div>
 
-<div id="programming-view" class="view">
-    <div id="success" class="overlay-msg" style="background: var(--success);">Level bestanden! 🏝️</div>
-    <div id="warning" class="overlay-msg" style="background: #f59e0b;">Achtung! Ein Hai! 🦈</div>
+    <div id="programming-view" class="view">
+        <div id="success" class="overlay-msg" style="background: var(--success);">Level bestanden! 🏝️</div>
+        <div id="warning" class="overlay-msg" style="background: #f59e0b;">Achtung! Ein Hai! 🦈</div>
 
-    <div class="left">
-        <div id="score-display" style="position: absolute; top: 15px; right: 20px; background: rgba(15, 23, 42, 0.8); padding: 10px 20px; border-radius: 20px; border: 2px solid var(--primary); z-index: 1000; display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 24px;">🪙</span>
-            <span id="score-count" style="font-size: 20px; font-weight: bold; color: var(--primary);">0</span>
-        </div>
+        <div class="left">
+            <div id="score-display" style="position: absolute; top: 15px; right: 20px; background: rgba(15, 23, 42, 0.8); padding: 10px 20px; border-radius: 20px; border: 2px solid var(--primary); z-index: 1000; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 24px;">🪙</span>
+                <span id="score-count" style="font-size: 20px; font-weight: bold; color: var(--primary);">0</span>
+            </div>
 
-        <h2 id="level-title" style="color: var(--primary); margin: 0 0 10px 0;">Level 1</h2>
+            <h2 id="level-title" style="color: var(--primary); margin: 0 0 10px 0;">Level 1</h2>
 
-        <div class="controls-game-top">
-            <button class="btn-green" onclick="runCode()">▶ START</button>
-            <button class="btn-red" onclick="reset()">↺ RESET</button>
-        </div>
+            <div class="controls-game-top">
+                <button class="btn-green" onclick="runCode()">▶ START</button>
+                <button class="btn-red" onclick="reset()">↺ RESET</button>
+            </div>
 
-        <div id="grid">
-            <div id="robot">
-                <img src="robi_right.png">
+            <div id="grid">
+                <div id="robot">
+                    <img id="player" src="images/robi_right.png">
+                </div>
+            </div>
+
+            <div class="controls-game-bottom">
+                <button id="btn-prev" class="btn-prev-next" onclick="changeLevel(-1)">◀◀</button>
+                <button class="btn-gray" onclick="showView('level-selection-view')">🏠 Menü</button>
+                <button class="btn-blue" onclick="chooseTutorialForHelpButton()">❓ Hilfe</button>
+                <button id="btn-next" class="btn-prev-next" onclick="changeLevel(1)">▶▶</button>
             </div>
         </div>
 
-        <div class="controls-game-bottom">
-            <button id="btn-prev" class="btn-prev-next" onclick="changeLevel(-1)">◀◀</button>
-            <button class="btn-gray" onclick="showView('level-selection-view')">⬅ Übersicht</button>
-            <button class="btn-blue" onclick="chooseTutorialForHelpButton()">❓ Hilfe</button>
-            <button id="btn-next" class="btn-prev-next" onclick="changeLevel(1)">▶▶</button>
+        <div class="right">
+            <div class="controls-top">
+                <button class="btn-gray" onclick="saveBlocks()">💾 Speichern</button>
+                <button class="btn-gray" onclick="loadBlocks()">📂 Laden</button>
+                <input type="file" id="file-input" style="display: none;" accept=".xml">
+            </div>
+            <div id="blocklyArea">
+                <div id="blocklyDiv"></div>
+            </div>
         </div>
     </div>
 
-    <div class="right">
-        <div class="controls-top">
-            <button class="btn-gray" onclick="saveBlocks()">💾 Speichern</button>
-            <button class="btn-gray" onclick="loadBlocks()">📂 Laden</button>
-            <input type="file" id="file-input" style="display: none;" accept=".xml">
-        </div>
-        <div id="blocklyArea">
-            <div id="blocklyDiv"></div>
+    <div id="tutorial-overlay">
+        <div id="tutorial-bubble" class="tutorial-bubble">
+            <h3 id="tut-title"></h3>
+            <p id="tut-text"></p>
+            <button class="btn-blue" style="float: right;" onclick="nextStep()">Weiter</button>
         </div>
     </div>
-</div>
 
-<div id="tutorial-overlay">
-    <div id="tutorial-bubble" class="tutorial-bubble">
-        <h3 id="tut-title"></h3>
-        <p id="tut-text"></p>
-        <button class="btn-blue" style="float: right;" onclick="nextStep()">Weiter</button>
+    <div id="quiz-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; justify-content:center; align-items:center; backdrop-filter: blur(5px);">
+        <div id="quiz-card" style="background:white; padding:30px; border-radius:20px; max-width:550px; width:90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); position:relative;">
+            <div id="quiz-content"></div>
+        </div>
     </div>
-</div>
+
+    <div id="shop-overlay" class="shop-overlay">
+        <div class="shop-content">
+            <header class="shop-header">
+                <h2>Robo-Shop 🛒</h2>
+                <div class="shop-score">Münzen: <span id="shop-coin-count">0</span> 🪙</div>
+                <button class="close-shop" onclick="closeShop()">✖ Schließen</button>
+            </header>
+
+            <nav class="shop-nav">
+                <button class="shop-cat-btn active" onclick="filterShop('skins', this)">Skins</button>
+                <button class="shop-cat-btn" onclick="filterShop('spuren', this)">Spuren</button>
+                <button class="shop-cat-btn" onclick="filterShop('welten', this)">Welten</button>
+                <button class="shop-cat-btn" onclick="filterShop('upgrades', this)">Upgrades</button>
+            </nav>
+
+            <div id="shop-grid" class="shop-grid"></div>
+        </div>
+    </div>
 
 <script>
     const gameData = {
         unlockedLevel: parseInt(localStorage.getItem('unlocked_level')) || 1,
-        currentLevelNum: 1,
+        unlockedPractices: JSON.parse(localStorage.getItem('unlocked_practices')) || [], 
         score: parseInt(localStorage.getItem('robo_score')) || 0, // Lädt gespeicherte Punkte
         completedLevels: JSON.parse(localStorage.getItem('completed_levels')) || {}, // Speichert: { "levelId": Anzahl_Bestanden }
+        activeSkin: localStorage.getItem('robo_activeSkin') || 'default', 
+        activeTrail: localStorage.getItem('robo_activeTrail') || null,
         levels: [
             // Level 1-5: Einführung Robi, Insel & Einführung grundlegende Steuerung
             { id: 1, start: {x: 0, y: 7}, island: {x: 0, y: 5}, sharks: null, treasure: null, blocks: ['move_forward'], tutorials: ['intro'] },
-            { id: 2, start: {x: 4, y: 7}, island: {x: 2, y: 5}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_left'], tutorials: ['turnLeft'] },
+            { id: 2, start: {x: 4, y: 7}, island: {x: 2, y: 5}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_left'], tutorials: ['turnLeft', 'trashcan'] },
             { id: 3, start: {x: 3, y: 7}, island: {x: 7, y: 6}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'], tutorials: ['turnRight'] },
             { id: 4, start: {x: 0, y: 7}, island: {x: 3, y: 2}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
-            { id: 5, start: {x: 7, y: 5}, island: {x: 4, y: 7}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
-            
+            { id: 5, start: {x: 7, y: 5}, island: {x: 4, y: 7}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'], tutorials: ['quiz'] },
+
+            { id: 6, type: 'quiz', unlocksPractice: 'P1', questions: [
+                { q: "Was macht 'vörwärts'?", a: ["Robi dreht sich", "Robi geht einen Schritt nach vorne", "Robi springt"], correct: [1], multiple: false },
+                { q: "Welche Blöcke sind blau?", a: ["Bewegung", "Sensoren", "Schleifen"], correct: [0], multiple: false },
+                { q: "Wozu nutzt man die lilafabenen Blöcke?", a: ["Zum fragen, wo Robi steht", "Um 2 Schritt zu gehen", "Um Robi nach links oder rechts zu drehen"], correct: [2], multiple: false }
+            ] },
+            { id: 'P1', type: 'practice', blocks: ['move_forward', 'turn_left', 'turn_right'], description: "Übe das Gelernte in einem Zufallslevel!", tutorials: ['practice'] },
+
             // Level 6-10: Einführung Hai & Vertiefung grundlegende Steuerung
-            { id: 6, start: {x: 3, y: 7}, island: {x: 3, y: 3}, sharks: [{x: 3, y: 4}, {x: 3, y: 5}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'], tutorials: ['sharks'] },
-            { id: 7, island: {x: 3, y: 5}, sharks: [{x: 1, y: 7}, {x: 1, y: 6}, {x: 1, y: 5}, {x: 3, y: 4}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
-            { id: 8, island: {x: 2, y: 3}, sharks: [{x: 0, y: 4}, {x: 1, y: 6}, {x: 3, y: 6}, {x: 1, y: 4}, {x: 3, y: 4}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
-            { id: 9, island: {x: 2, y: 3}, sharks: [{x: 0, y: 4}, {x: 1, y: 6}, {x: 3, y: 6}, {x: 1, y: 4}, {x: 3, y: 4}, {x: 0, y: 6}, {x: 2, y: 6}, {x: 4, y: 4}, {x: 5, y: 4}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
-            { id: 10, start: {x: 4, y: 4}, island: {x: 4, y: 2}, sharks: [{x: 3, y: 3}, {x: 4, y: 3}, {x: 5, y: 3}, {x: 3, y: 4}, {x: 5, y: 4}, {x: 3, y: 5}, {x: 5, y: 5}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
-    
-            // Level 11-15: Einführung Schatz, neuer Block "Schatz aufheben" & Vertiefung grundlegende Steuerung
-            { id: 11, island: {x: 0, y: 5}, sharks: null, treasure: {x: 0, y: 3}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'], tutorials: ['treasure'] },
-            { id: 12, island: {x: 4, y: 7}, sharks: [{x: 2, y: 6}, {x: 2, y: 7}], treasure: {x: 0, y: 5}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] },
-            { id: 13, island: {x: 0, y: 5}, sharks: [{x: 1, y: 5}, {x: 1, y: 6}, {x: 1, y: 7}], treasure: {x: 2, y: 7}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] },
-            { id: 14, start: {x: 3, y: 4}, island: {x: 2, y: 3}, sharks: [{x: 4, y: 3}, {x: 2, y: 5}], treasure: {x: 4, y: 5}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] }, 
-            { id: 15, start: {x: 3, y: 7}, island: {x: 3, y: 3}, sharks: [{x: 2, y: 4}, {x: 4, y: 4}], treasure: {x: 3, y: 0}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] },
+            { id: 7, start: {x: 3, y: 7}, island: {x: 3, y: 3}, sharks: [{x: 3, y: 4}, {x: 3, y: 5}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'], tutorials: ['sharks'] },
+            { id: 8, island: {x: 3, y: 5}, sharks: [{x: 1, y: 7}, {x: 1, y: 6}, {x: 1, y: 5}, {x: 3, y: 4}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
+            { id: 9, island: {x: 2, y: 3}, sharks: [{x: 0, y: 4}, {x: 1, y: 6}, {x: 3, y: 6}, {x: 1, y: 4}, {x: 3, y: 4}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
+            { id: 10, island: {x: 2, y: 3}, sharks: [{x: 0, y: 4}, {x: 1, y: 6}, {x: 3, y: 6}, {x: 1, y: 4}, {x: 3, y: 4}, {x: 0, y: 6}, {x: 2, y: 6}, {x: 4, y: 4}, {x: 5, y: 4}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'] },
+            { id: 11, start: {x: 4, y: 4}, island: {x: 4, y: 2}, sharks: [{x: 3, y: 3}, {x: 4, y: 3}, {x: 5, y: 3}, {x: 3, y: 4}, {x: 5, y: 4}, {x: 3, y: 5}, {x: 5, y: 5}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'], tutorials: ['quiz'] },
 
-            // Level 16-20: Einführung Zählschleife
-            { id: 16, start: {x: 3, y: 7}, island: {x: 3, y: 3}, sharks: [{x: 2, y: 4}, {x: 4, y: 4}], treasure: {x: 3, y: 0}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_repeat_ext'], tutorials: ['zählschleife'] },
-            { id: 17, island: {x: 4, y: 2}, sharks: [{x: 1, y: 7}, {x: 1, y: 6}, {x: 1, y: 5}, {x: 1, y: 4}, {x: 1, y: 3}], treasure: {x: 0, y: 2}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] },
-            { id: 18, island: {x: 4, y: 2}, sharks: [{x: 1, y: 7}, {x: 1, y: 6}, {x: 1, y: 5}, {x: 1, y: 4}, {x: 1, y: 3}], treasure: {x: 0, y: 2}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_repeat_ext'], tutorials: ['zählschleife-2']  },
-            { id: 19, start: {x: 7, y: 7}, island: {x: 6, y: 7}, sharks: [{x: 0, y: 5}, {x: 2, y: 5}, {x: 3, y: 5}, {x: 4, y: 5}, {x: 5, y: 5}, {x: 6, y: 5}, {x: 7, y: 5}], treasure: {x: 4, y: 4}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] },
-            { id: 20, start: {x: 7, y: 7}, island: {x: 6, y: 7}, sharks: [{x: 0, y: 5}, {x: 2, y: 5}, {x: 3, y: 5}, {x: 4, y: 5}, {x: 5, y: 5}, {x: 6, y: 5}, {x: 7, y: 5}], treasure: {x: 4, y: 4}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_repeat_ext'], tutorials: ['zählschleife-2']  },
+            { id: 12, type: 'quiz', unlocksPractice: 'P2', questions: [
+                { q: "Was passiert, wenn Robi auf ein Feld mit einem Hai läuft?", a: ["Robi angelt den Hai", "Robi kann nicht auf das Feld gehen", "Der Hai frisst Robi auf"], correct: [1], multiple: false },
+                { q: "Was muss Robi tun, wenn vor ihm ein Hai ist?", a: ["Er muss drüber springen", "Er muss zurück zum Start", "Er muss um den Hai herum laufen"], correct: [2], multiple: false },
+                { q: "Wie kann man mit Blöcken programmieren?", a: ["Man schiebt Blöcke mit Befehlen so übereinander, dass sie ein Programm ergeben", "Man setzt beliebige Blöcke zusammen und am Ende läuft das Programm", "Man legt mit Blöcken fest, wann was passieren soll"], correct: [0, 2], multiple: true}
+            ] }, 
+            { id: 'P2', type: 'practice', blocks: ['move_forward', 'turn_left', 'turn_right'], description: "Übe das Gelernte in einem Zufallslevel!" },
+
+            // Level 13-17: Einführung Schatz, neuer Block "Schatz aufheben" & Vertiefung grundlegende Steuerung
+            { id: 13, island: {x: 0, y: 5}, sharks: null, treasure: {x: 0, y: 3}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'], tutorials: ['treasure'] },
+            { id: 14, island: {x: 4, y: 7}, sharks: [{x: 2, y: 6}, {x: 2, y: 7}], treasure: {x: 0, y: 5}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] },
+            { id: 15, island: {x: 0, y: 5}, sharks: [{x: 1, y: 5}, {x: 1, y: 6}, {x: 1, y: 7}], treasure: {x: 2, y: 7}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] },
+            { id: 16, start: {x: 3, y: 4}, island: {x: 2, y: 3}, sharks: [{x: 4, y: 3}, {x: 2, y: 5}], treasure: {x: 4, y: 5}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] }, 
+            { id: 17, start: {x: 3, y: 7}, island: {x: 3, y: 3}, sharks: [{x: 2, y: 4}, {x: 4, y: 4}], treasure: {x: 3, y: 0}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'], tutorials: ['quiz'] },
+
+            { id: 18, type: 'quiz', unlocksPractice: 'P3', questions: [
+                { q: "Was ist wichtig, wenn auf einem Feld ein Schatz liegt?", a: ["Robi muss zum Schatz gehen, nicht zur Insel", "Robi muss den Schatz aufheben", "Ohne den Schatz aufzuheben, kann das Level nicht beendet werden"], correct: [1, 2], multiple: true },
+                { q: "Welcher Block ist neu?", a: ["Schatz aufheben", "Schatz holen", "Schatz suchen"], correct: [0], multiple: false },
+                { q: "Was braucht bei Level 17 besonders viel Zeit?", a: ["Um die vielen Haie herum laufen", "Robi oft nach links drehen", "Sehr oft hintereinander 1 Schritt nach vorne gehen"], correct: [2], multiple: false}
+            ] }, 
+            { id: 'P3', type: 'practice', blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'], description: "Übe das Gelernte in einem Zufallslevel!" },
+
+
+            // Level 19-23: Einführung Zählschleife
+            { id: 19, start: {x: 3, y: 7}, island: {x: 3, y: 3}, sharks: [{x: 2, y: 4}, {x: 4, y: 4}], treasure: {x: 3, y: 0}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_repeat_ext'], tutorials: ['zählschleife'] },
+            { id: 20, island: {x: 4, y: 2}, sharks: [{x: 1, y: 7}, {x: 1, y: 6}, {x: 1, y: 5}, {x: 1, y: 4}, {x: 1, y: 3}], treasure: {x: 0, y: 2}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'] },
+            { id: 21, island: {x: 4, y: 2}, sharks: [{x: 1, y: 7}, {x: 1, y: 6}, {x: 1, y: 5}, {x: 1, y: 4}, {x: 1, y: 3}], treasure: {x: 0, y: 2}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_repeat_ext'], tutorials: ['zählschleife-2']  },
+            { id: 22, start: {x: 7, y: 7}, island: {x: 6, y: 7}, sharks: [{x: 0, y: 5}, {x: 2, y: 5}, {x: 3, y: 5}, {x: 4, y: 5}, {x: 5, y: 5}, {x: 6, y: 5}, {x: 7, y: 5}], treasure: {x: 4, y: 4}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure'], tutorials: ['zoom'] },
+            { id: 23, start: {x: 7, y: 7}, island: {x: 6, y: 7}, sharks: [{x: 0, y: 5}, {x: 2, y: 5}, {x: 3, y: 5}, {x: 4, y: 5}, {x: 5, y: 5}, {x: 6, y: 5}, {x: 7, y: 5}], treasure: {x: 4, y: 4}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_repeat_ext'], tutorials: ['zählschleife-2']  },
             
-            // Level 21-25: Vertiefung Zählschleife
-            { id: 21, start: {x: 0, y: 0}, island: {x: 5, y: 5}, sharks: [{x: 0, y: 1}, {x: 1, y: 1}, {x: 2, y: 1}, {x: 3, y: 1}, {x: 4, y: 1}, {x: 5, y: 1}], treasure: {x: 6, y: 0}, blocks: ['move_forward', 'turn_right', 'turn_left', 'collect_treasure', 'controls_repeat_ext'] },
-            { id: 22, start: {x: 0, y: 0}, island: {x: 3, y: 3}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_right', 'turn_left', 'controls_repeat_ext'] },
-            { id: 23, start: {x: 1, y: 1}, island: {x: 1, y: 2}, sharks: [{x: 1, y: 3}, {x: 2, y: 1}, {x: 2, y: 2}, {x: 0, y: 1}, {x: 0, y: 2}], treasure: {x: 1, y: 6},  blocks: ['move_forward', 'turn_right', 'tunr_left', 'collect_treasure', 'controls_repeat_ext'] },
-            { id: 24, start: {x: 0, y: 0}, island: {x: 4, y: 3}, sharks: [{x: 2, y: 0}, {x: 2, y: 1}, {x: 2, y: 2}, {x: 2, y: 3}, {x: 2, y: 4}], treasure: {x: 7, y: 0}, blocks: ['move_forward', 'turn_right', 'collect_treasure', 'controls_repeat_ext'] },
-            { id: 25, start: {x: 0, y: 0}, island: {x: 6, y: 0}, sharks: [{x: 1, y: 1}, {x: 3, y: 1}, {x: 5, y: 1}], treasure: {x: 1, y: 2}, blocks: ['move_forward', 'turn_right', 'turn_left', 'collect_treasure', 'controls_repeat_ext'] },
+            // Level 24-28: Vertiefung Zählschleife
+            { id: 24, start: {x: 0, y: 0}, island: {x: 5, y: 5}, sharks: [{x: 0, y: 1}, {x: 1, y: 1}, {x: 2, y: 1}, {x: 3, y: 1}, {x: 4, y: 1}, {x: 5, y: 1}], treasure: {x: 6, y: 0}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_repeat_ext'] },
+            { id: 25, start: {x: 0, y: 0}, island: {x: 3, y: 3}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right', 'controls_repeat_ext'] },
+            { id: 26, start: {x: 1, y: 1}, island: {x: 1, y: 2}, sharks: [{x: 1, y: 3}, {x: 2, y: 1}, {x: 2, y: 2}, {x: 0, y: 1}, {x: 0, y: 2}], treasure: {x: 1, y: 6},  blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_repeat_ext'] },
+            { id: 27, start: {x: 0, y: 0}, island: {x: 4, y: 3}, sharks: [{x: 2, y: 0}, {x: 2, y: 1}, {x: 2, y: 2}, {x: 2, y: 3}, {x: 2, y: 4}], treasure: {x: 7, y: 0}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_repeat_ext'] },
+            { id: 28, start: {x: 0, y: 0}, island: {x: 6, y: 0}, sharks: [{x: 1, y: 1}, {x: 3, y: 1}, {x: 5, y: 1}], treasure: {x: 1, y: 2}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_repeat_ext'], tutorials: ['quiz'] },
 
-            // Level 26-30: Einführung Bedingungsschleife, Insel- & Schatz-Sensoren
-            { id: 26, start: {x: 2, y: 7}, island: {x: 2, y: 0}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 0, y: 3}, {x: 3, y: 5}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island'], tutorials: ['bedingungsschleife', 'on_island'] }, 
-            { id: 27, start: {x: 0, y: 3}, island: {x: 7, y: 3}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 6, y: 2}, {x: 3, y: 5}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island'] }, 
-            { id: 28, start: {x: 5, y: 7}, island: {x: 0, y: 3}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 6, y: 2}, {x: 3, y: 5}], treasure: {x: 5, y: 3}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure'] },             
-            { id: 29, start: {x: 4, y: 5}, island: {x: 0, y: 0}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 6, y: 2}, {x: 3, y: 5}], treasure: {x: 0, y: 6}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure'] },                         
-            { id: 30, start: {x: 3, y: 6}, island: {x: 5, y: 7}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 6, y: 2}, {x: 3, y: 5}], treasure: {x: 5, y: 0}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure'] },             
+            { id: 29, type: 'quiz', unlocksPractice: 'P4', questions: [
+                { q: "Welche Farbe hat der neue Block für eine Zählschleife?", a: ["Der neue Block ist rot", "Der neue Block ist gelb", "Der neue Block ist grün"], correct: [2], multiple: false},
+                { q: "Wie funktioniert eine Zählschleife?", a: ["Die Schleife wiederholt das ganze Programm 3 Mal", "Man kann angeben, wie oft etwas wiederholt werden soll", "Man zieht die Blöcke, die wiederholt werden sollen, in die Schleife"], correct: [1, 2], multiple: true },                
+                { q: "Wann ist es sinnvoll, eine Zählschleife zu nutzen?", a: ["Wenn man Lust darauf hat", "Wenn etwas ein Mal oder öfter wiederholt werden soll", "Wenn etwas zwei Mal oder öfter wiederholt werden soll"], correct: [2], multiple: false },
+            ] }, 
+            { id: 'P4', type: 'practice', blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_repeat_ext'], description: "Übe das Gelernte in einem Zufallslevel!" },
 
-            // Level 31-35: Einführung Verzweigung, Hai-Sensoren
-            { id: 31, island: {x: 0, y: 0}, sharks: null, treasure: {x: 0, y: 3}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_if', 'on_treasure', 'on_island', 'controls_whileUntil'] },
-            { id: 32, island: {x: 4, y: 1}, sharks: [{x: 0, y: 0}], treasure: null, blocks: ['move_forward', 'turn_right', 'controls_whileUntil', 'on_island', 'controls_if', 'shark_front'] },
-            { id: 33, start: {x: 3, y: 7}, island: {x: 3, y: 0}, sharks: [{x: 3, y: 4}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure', 'shark_front', 'controls_if'] },     
-            { id: 34, start: {x: 3, y: 7}, island: {x: 3, y: 0}, sharks: [{x: 3, y: 2}, {x: 3, y: 6}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure', 'shark_front', 'controls_if'] },               
-            { id: 35, island: {x: 4, y: 0}, sharks: [{x: 2, y: 0}], treasure: {x: 0, y: 0}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'on_treasure', 'on_island', 'controls_if', 'shark_front', 'controls_whileUntil'] },
+            // Level 30-34: Einführung Bedingungsschleife mit "bis", Insel- & Schatz-Sensoren
+            { id: 30, start: {x: 2, y: 7}, island: {x: 2, y: 0}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 0, y: 3}, {x: 3, y: 5}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island'], tutorials: ['on_island', 'bedingungsschleife'] }, 
+            { id: 31, start: {x: 0, y: 3}, island: {x: 7, y: 3}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 6, y: 2}, {x: 3, y: 5}], treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island'] }, 
+            { id: 32, start: {x: 5, y: 7}, island: {x: 0, y: 3}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 6, y: 2}, {x: 3, y: 5}], treasure: {x: 5, y: 3}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure'], tutorials: ['on_treasure'] },             
+            { id: 33, start: {x: 4, y: 5}, island: {x: 0, y: 0}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 6, y: 2}, {x: 3, y: 5}], treasure: {x: 0, y: 6}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure'] },                         
+            { id: 34, start: {x: 3, y: 6}, island: {x: 5, y: 7}, sharks: [{x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 6, y: 2}, {x: 3, y: 5}], treasure: {x: 5, y: 0}, blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure'] },   
+            
+            // Level 35-39: Bedingungsschleife mit "solange", Hai-Sensoren
+            { id: 35, start: {x: 0, y: 6}, island: {x: 5, y: 7}, sharks: [{x: 0, y: 5}, {x: 1, y: 5}, {x: 2, y: 5}, {x: 1, y: 2}, {x: 4, y: 4}, {x: 6, y: 6}, {x: 6, y: 2}, {x: 3, y: 5}], treasure: {x: 5, y: 0},                                              blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure', 'shark_front', 'logic_negate'], tutorials: ['bedingungsschleife_while', 'shark_front', 'logic_negate'] },             
+            { id: 36, start: {x: 0, y: 6}, island: {x: 2, y: 6}, sharks: [{x: 1, y: 5}, {x: 1, y: 6}, {x: 1, y: 7}, {x: 0, y: 0}, {x: 4, y: 4}, {x: 7, y: 6}, {x: 7, y: 1}, {x: 3, y: 5}, {x: 3, y: 3}, {x: 2, y: 2}, {x: 2, y: 5}], treasure: {x: 6, y: 6},    blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure', 'shark_front', 'logic_negate'], tutorials: ['msg_lvl36'] },             
+            { id: 37, start: {x: 3, y: 4}, island: {x: 1, y: 5}, sharks: [{x: 1, y: 6}, {x: 1, y: 7}, {x: 0, y: 1}, {x: 7, y: 4}, {x: 7, y: 6}, {x: 7, y: 1}, {x: 3, y: 5}, {x: 3, y: 3}, {x: 2, y: 2}, {x: 2, y: 5}], treasure: {x: 6, y: 1},                  blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure', 'shark_front', 'logic_negate']},             
+            { id: 38, start: {x: 1, y: 7}, island: {x: 0, y: 0}, sharks: [{x: 2, y: 7}, {x: 2, y: 6}, {x: 2, y: 5}, {x: 7, y: 1}, {x: 7, y: 2}, {x: 7, y: 3}, {x: 7, y: 4}], treasure: {x: 6, y: 4},                                                            blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure', 'shark_front', 'shark_right', 'logic_negate'], tutorials: ['shark_right'] },
+            { id: 39, start: {x: 7, y: 7}, island: {x: 5, y: 7}, sharks: [{x: 6, y: 7}, {x: 6, y: 6}, {x: 6, y: 5}, {x: 6, y: 4}, {x: 0, y: 3}, {x: 0, y: 4}, {x: 0, y: 5}, {x: 0, y: 6}], treasure: {x: 1, y: 3},                                              blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure', 'shark_left', 'shark_right'], tutorials: ['shark_left'] },
+
+            { id: 40, type: 'quiz', unlocksPractice: 'P5', questions: [
+                { q: "Wie funktioniert eine Bedingungsschleife?", a: ["Im Schleifenkopf gibt es eine Bedingung, die dauerhaft überprüft wird", "Die Blöcke in der Schleife werden wiederholt, bis oder solange die Bedingung erfüllt ist", "Die Blöcke in der Schleife werden so oft wiederholt, wie im Schleifenkopf angegeben"], correct: [0,1], multiple: true},
+                { q: "Welche unterschiedlichen Bedingungsschleifen gibt es?", a: ["Bedingungsschleifen mit 'bis' und mit 'ab'", "Bedingungsschleifen mit 'solange' und mit 'ab'", "Bedingungsschleifen mit 'bis' und mit 'solange'"], correct: [2], multiple: false },                
+                { q: "Welche Sensoren gibt es?", a: ["'Hai vorne', 'Hai hinten', 'Hai links'", "'Auf einem Schatz', 'Auf einer Insel'", "'Hai links', 'Hai vorne', 'Hai hinten'"], correct: [1, 2], multiple: true },
+            ] }, 
+            { id: 'P5', type: 'practice', blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_treasure', 'on_island', 'shark_left', 'shark_right', 'logic_negate'], description: "Übe das Gelernte in einem Zufallslevel!" },
+
+
+            // Level 31-35: Einführung Verzweigung, und-/oder-Verknüpfungen
+            { id: 41, island: {x: 0, y: 0}, sharks: null, treasure: {x: 0, y: 3},                                       blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure', 'controls_if_else'], tutorials: ['controls_if']},
+            { id: 42, island: {x: 4, y: 1}, sharks: [{x: 0, y: 0}], treasure: null,                                     blocks: ['move_forward', 'turn_left', 'turn_right', 'controls_whileUntil', 'on_island', 'shark_front', 'controls_if_else'], tutorials: ['controls_if_2'] },
+            { id: 43, start: {x: 3, y: 7}, island: {x: 3, y: 0}, sharks: [{x: 3, y: 4}], treasure: null,                blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure', 'shark_front', 'controls_if_else'] },     
+            { id: 44, start: {x: 3, y: 7}, island: {x: 3, y: 0}, sharks: [{x: 3, y: 2}, {x: 3, y: 6}], treasure: null,  blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure', 'shark_front', 'controls_if_else'] },               
+            { id: 45, start: {x: 3, y: 7}, island: {x: 3, y: 0}, sharks: [{x: 3, y: 4}, {x: 2, y: 5}], treasure: null,  blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure', 'shark_front', 'shark_left', 'controls_if_else', 'logic_operation'], tutorials: ['logic_operation'] },               
+            
+            
+            { id: 46, island: {x: 4, y: 0}, sharks: [{x: 2, y: 0}], treasure: {x: 0, y: 0},                             blocks: ['move_forward', 'turn_left', 'turn_right', 'collect_treasure', 'controls_whileUntil', 'on_island', 'on_treasure', 'shark_front', 'controls_if_else'], tutorials: ['controls_if_verschachtelt'] },
 
 
         
-
-
-
-
-
-
-
-            { id: 40, island: {x: 7, y: 0}, treasure: {x: 7, y: 7}, sharks: [{x: 1, y: 0}, {x: 1, y: 1}, {x: 1, y: 2}, {x: 1, y: 3}, {x: 1, y: 4}, {x: 1, y: 6}, {x: 1, y: 7},
+            { id: 47, island: {x: 7, y: 0}, treasure: {x: 7, y: 7}, sharks: [{x: 1, y: 0}, {x: 1, y: 1}, {x: 1, y: 2}, {x: 1, y: 3}, {x: 1, y: 4}, {x: 1, y: 6}, {x: 1, y: 7},
                 {x: 3, y: 1}, {x: 3, y: 2}, {x: 3, y: 3}, {x: 3, y: 4}, {x: 3, y: 5}, {x: 3, y: 6}, {x: 3, y: 7},
                 {x: 5, y: 0}, {x: 5, y: 1}, {x: 5, y: 2}, {x: 5, y: 3}, {x: 5, y: 4}, {x: 5, y: 5}, {x: 5, y: 6}],
                 blocks: ['move_forward', 'turn_left', 'turn_right', 'controls_repeat_ext', 'controls_whileUntil', 'controls_if', 'shark_front', 'shark_left', 'shark_right', 'on_treasure', 'on_island', 'math_number', 'logic_operation', 'logic_negate'] },
@@ -269,6 +494,19 @@
     let runnerTimeout = null;
     // Aktuelles Level-Abbild (für Handling des Schatzes nötig!)
     let currentLevelConfig = null;
+    // Globale Variable für Quiz-Levels
+    let currentQuizState = {
+        questions: [],
+        answers: [],
+        currentIndex: 0,
+        levelId: null
+    };
+    // Globale Variable zum Definieren, wie viel Zeit zwischen einzelnen Bewegungen von Robi vergeht
+    let gameSpeed = 400;
+    // Gobale Variablen zum Erkennen und Beheben von Endlosschleifen
+    let isRunning = false;
+    let totalSteps = 0;
+    const MAX_STEPS = 5000;
 
 
     // --- VIEW LOGIK ---
@@ -290,33 +528,83 @@
     function renderLevelPath() {
         const container = document.getElementById('path-container');
         container.innerHTML = '';
-        // Anzahl der Level festlegen
-        const total = 40;
-        const perRow = 5;
-        
-        // Erstellen der Level-Übersicht
-        for (let r = 0; r < Math.ceil(total/perRow); r++) {
+        const rowLayout = [6, 6, 6, 11, 11, 11]; 
+        let levelPointer = 0; // Wir nutzen einen Pointer für das Array statt nur eine Nummer
+
+        rowLayout.forEach((perRow) => {
             const row = document.createElement('div');
             row.className = 'level-row';
+            
             for (let c = 0; c < perRow; c++) {
-                const num = (r * perRow) + c + 1;
-                if (num > total) break;
-                const btn = document.createElement('button');
-                btn.className = 'level-btn';
-                btn.innerText = num;
-                
-                //Überprüfung, ob das Level schon freigeschaltet ist
-                if (num < gameData.unlockedLevel) btn.classList.add('completed');
-                else if (num === gameData.unlockedLevel) btn.classList.add('active');
-                
-                // Event-Handling
-                btn.onclick = () => {
-                    if(num <= gameData.unlockedLevel) startLevel(num);
-                };
+                const levelDef = gameData.levels[levelPointer];
+                if (!levelDef) break;
+
+                // Wenn es ein Practice-Level ist, überspringen wir es für die normale Zählung
+                if (levelDef.type === 'practice') {
+                    levelPointer++;
+                    c--; // Platz in der Reihe nicht verbrauchen
+                    continue;
+                }
+
+                // Normalen Button erstellen
+                const btn = createLevelButton(levelDef);
                 row.appendChild(btn);
+
+                // BESONDERHEIT: Wenn dieses Level ein Quiz ist, prüfen wir, 
+                // ob das danach folgende Practice-Level daneben angezeigt werden soll
+                const nextDef = gameData.levels[levelPointer + 1];
+                if (levelDef.type === 'quiz' && nextDef && nextDef.type === 'practice') {
+                    const pBtn = createPracticeButton(nextDef);
+                    row.appendChild(pBtn);
+                    // Wir fügen einen kleinen Spacer/Abstand hinzu (per CSS)
+                    if (nextDef.id === 'P1' || nextDef.id === 'P3' || nextDef.id === 'P5') {
+                        pBtn.style.marginLeft = "25px"; 
+                    }
+                    else {
+                        pBtn.style.marginRight = "25px";
+                    }
+                }
+
+                levelPointer++;
             }
-            container.appendChild(row);
+            container.prepend(row);
+        });
+    }
+
+    function createLevelButton(levelDef) {
+        const btn = document.createElement('button');
+        btn.className = 'level-btn';
+        btn.innerHTML = levelDef.type === 'quiz' ? '❓' : levelDef.id;
+
+        if (levelDef.id < gameData.unlockedLevel) btn.classList.add('completed');
+        else if (levelDef.id === gameData.unlockedLevel) btn.classList.add('active');
+
+        btn.onclick = () => {
+            if (levelDef.id <= gameData.unlockedLevel) {
+                levelDef.type === 'quiz' ? startQuiz(levelDef) : startLevel(levelDef.id);
+            }
+        };
+        return btn;
+    }
+
+    function createPracticeButton(levelDef) {
+        const btn = document.createElement('button');
+        btn.className = 'level-btn practice-btn';
+        btn.innerHTML = '⚡';
+
+        // Wir prüfen explizit im Array der freigeschalteten Übungen
+        const isUnlocked = gameData.unlockedPractices && gameData.unlockedPractices.includes(levelDef.id);
+        
+        if (isUnlocked) {
+            btn.classList.add('active'); // Oder eine eigene Klasse
+            console.log("Starte Übungslevel:", levelDef.id);
+            btn.onclick = () => startPractice(levelDef);
+        } else {
+            btn.style.opacity = "0.3";
+            btn.style.cursor = "not-allowed";
+            btn.onclick = () => alert("Löse erst das Quiz, um diese Übung freizuschalten!");
         }
+        return btn;
     }
 
     function startLevel(num) {
@@ -324,6 +612,19 @@
    		
         const config = gameData.levels.find(l => l.id === gameData.currentLevelNum) || gameData.levels[0];
     
+        // Check wegen Sonderlevels (quiz & practice)
+        if (!config) {
+            console.error("Level " + levelId + " wurde nicht in gameData.levels gefunden.");
+            return;
+        }
+
+        // Wenn es ein Quiz oder Practice ist, brechen wir hier ab, 
+        // da diese Level eigene Start-Funktionen haben (startQuiz / startPractice)
+        if (config.type === 'quiz' || config.type === 'practice') {
+            console.log("Spezial-Level erkannt. Nutze die spezifische Start-Logik.");
+            return;
+        }
+
         // Tiefe Kopie erstellen, damit wir 'treasure' löschen können, ohne das Original zu zerstören
         currentLevelConfig = JSON.parse(JSON.stringify(config));
 
@@ -337,6 +638,9 @@
     
    		showView('programming-view');
    		reset(); // Setzt nur den Roboter auf 0,0
+
+        // Aussehen updaten, da ggf. der Skin gewechselt wurde
+        updatePlayerAppearance();
 
         // NavigationButtons aktualisieren
         setTimeout(() => {
@@ -355,16 +659,19 @@
         const level = gameData.levels.find(l => l.id === gameData.currentLevelNum);
         if (!level || !level.tutorials) return;
 
-        // Wir gehen alle Tutorials durch, die für dieses Level gelistet sind
-        level.tutorials.forEach(tutKey => {
-            const storageKey = `tut_completed_${tutKey}`;
-            
-            // Nur automatisch starten, wenn es noch nie gesehen wurde
-            if (!localStorage.getItem(storageKey)) {
-                startTutorial(tutKey);
-                localStorage.setItem(storageKey, 'true');
-            }
-        });
+        // Wir sammeln alle Tutorials, die noch nicht gesehen wurden
+        const unseenTutorials = level.tutorials.filter(tutKey => {
+            return !localStorage.getItem(`tut_completed_${tutKey}`);
+        });  
+        // Nur wenn es ungesehene Tutorials gibt, starten wir sie gesammelt
+        if (unseenTutorials.length > 0) {
+            startTutorial(unseenTutorials);
+
+            // Alle als erledigt markieren
+            unseenTutorials.forEach(tutKey => {
+                localStorage.setItem(`tut_completed_${tutKey}`, 'true');
+            });
+        }
     }
 
     function chooseTutorialForHelpButton() {
@@ -376,7 +683,7 @@
 
         // Wenn es mehrere Tutorials gibt, zeigen wir das wichtigste (das letzte in der Liste) 
         // oder wir starten einfach das erste erneut.
-        startTutorial(level.tutorials[0]);
+        startTutorial(level.tutorials);
     }
 
     // --- BLOCKLY INITIALISIERUNG ---
@@ -387,12 +694,25 @@
         { "type": "turn_right", "message0": "↪ rechts drehen", "previousStatement": null, "nextStatement": null, "colour": 290 },
         { "type": "collect_treasure", "message0": "Schatz aufheben", "previousStatement": null, "nextStatement": null, "colour": 45 },
         // Sensoren-Blöcke
-        { "type": "shark_front", "message0": "Weg vorne frei 🦈⬆?", "output": "Boolean", "colour": 160, "tooltip": "Gibt wahr zurück, wenn vor Robi kein Hai ist." },
-        { "type": "shark_left", "message0": "Weg links frei 🦈⬆?", "output": "Boolean", "colour": 160, "tooltip": "Gibt wahr zurück, wenn links von Robi kein Hai ist." },
-        { "type": "shark_right", "message0": "Weg rechts frei 🦈⬆?", "output": "Boolean", "colour": 160, "tooltip": "Gibt wahr zurück, wenn rechts von Robi kein Hai ist." },
-        { "type": "on_island", "message0": "Auf einer Insel?", "output": "Boolean", "colour": 160, "tooltip": "Gibt wahr zurück, wenn Robi auf einer Insel steht." },
-        { "type": "on_treasure", "message0": "Auf einem Schatz?", "output": "Boolean", "colour": 160, "tooltip": "Gibt wahr zurück, wenn Robi auf einem Schatz steht." }
-    ]);
+        { "type": "shark_front", "message0": "Hai vorne⬆", "output": "Boolean", "colour": 160, "tooltip": "Gibt wahr zurück, wenn vor Robi kein Hai ist." },
+        { "type": "shark_left", "message0": "Hai links🦈⬆", "output": "Boolean", "colour": 160, "tooltip": "Gibt wahr zurück, wenn links von Robi kein Hai ist." },
+        { "type": "shark_right", "message0": "Hai rechts 🦈⬆", "output": "Boolean", "colour": 160, "tooltip": "Gibt wahr zurück, wenn rechts von Robi kein Hai ist." },
+        { "type": "on_island", "message0": "Auf einer Insel", "output": "Boolean", "colour": 160, "tooltip": "Gibt wahr zurück, wenn Robi auf einer Insel steht." },
+        { "type": "on_treasure", "message0": "Auf einem Schatz", "output": "Boolean", "colour": 160, "tooltip": "Gibt wahr zurück, wenn Robi auf einem Schatz steht." },
+        ]);
+    // Anpasse der Worte der Verzweigungen
+    Blockly.Msg["CONTROLS_IF_MSG_IF"] = "wenn";
+    Blockly.Msg["CONTROLS_IF_MSG_ELSEIF"] = "sonst wenn";
+    Blockly.Msg["CONTROLS_IF_MSG_ELSE"] = "sonst";
+    Blockly.Msg["CONTROLS_IF_MSG_THEN"] = "dann";
+    // Anpassen der Farbe der Verzweigungen
+    if (Blockly.Blocks['controls_if']) {
+        const oldInit = Blockly.Blocks['controls_if'].init;
+        Blockly.Blocks['controls_if'].init = function() {
+            oldInit.call(this);
+            this.setColour(0); // 30 ist das Blockly-Orange
+        };
+    }
 
     // WICHTIG: Die neue Zuweisung für Blockly v10/v11
     const javascriptGenerator = javascript.javascriptGenerator;
@@ -507,8 +827,8 @@
         // 4. Hai-Check
         const hasShark = config.sharks && config.sharks.some(s => s.x === nx && s.y === ny);
         
-        // Weg ist frei, wenn dort KEIN Hai ist
-        return !hasShark;
+        // Gibt true zurück, wenn ein Hai auf dem Feld vor Robi ist.
+        return hasShark;
     }
 
     function sharkLeft() {
@@ -534,8 +854,8 @@
         // 5. Hai-Check
         const hasShark = config.sharks && config.sharks.some(s => s.x === nx && s.y === ny);
         
-        // Weg ist frei, wenn links KEIN Hai ist
-        return !hasShark;
+        // Gibt true zurück, wenn ein Hai auf dem Feld links von Robi ist.
+        return hasShark;
     }
 
     function sharkRight() {
@@ -561,8 +881,8 @@
         // 4. Hai-Check
         const hasShark = config.sharks && config.sharks.some(s => s.x === nx && s.y === ny);
         
-        // Weg ist frei, wenn rechts KEIN Hai ist
-        return !hasShark;
+        // Gibt true zurück, wenn ein Hai auf dem Feld rechts von Robi ist.
+        return hasShark;
     }
 
     function onIsland() {
@@ -583,6 +903,19 @@
 
     function updateToolbox(blockTypes) {
         const contents = blockTypes.map(t => {
+            if (t === 'controls_if') {
+                return {
+                    "kind": "block",
+                    "type": "controls_if",
+                }
+            }
+            if (t === 'controls_if_else') {
+                return {
+                    "kind": "block",
+                    "type": "controls_if",
+                    "extraState": { "hasElse": true }, // Für moderne Blockly-Versionen
+                };
+            }
             if (t === 'controls_repeat_ext') {
                 return {
                     "kind": "block",
@@ -607,61 +940,97 @@
         });
 
         workspace.updateToolbox({ "kind": "flyoutToolbox", "contents": contents });
+
+        if (workspace.getFlyout()) {
+            workspace.getFlyout().getWorkspace().setScale(0.8);
+        }
     }
 
     // --- GAME LOGIK ---
     function initGrid(config) {
-    		const grid = document.getElementById('grid');
-   		 grid.querySelectorAll('.cell').forEach(c => c.remove());
-    
-    		for (let i = 0; i < 64; i++) {
-     	  		 const x = i % 8; const y = Math.floor(i / 8);
-     			   const cell = document.createElement('div');
-     			   cell.className = 'cell';
-        
-        		// Insel platzieren
-        		if (x === config.island.x && y === config.island.y) cell.innerText = '🏝️';
+    	const grid = document.getElementById('grid');
+   		if (!grid) return;
 
-                // 2. Schatz
-                else if (config.treasure && x === config.treasure.x && y === config.treasure.y) {
-                    const img = document.createElement('img');
-                    img.src = 'treasure.png';
-                    img.style.width = '40px';  
-                    img.style.height = '40px';
-                    cell.appendChild(img);
-                }
+        grid.querySelectorAll('.cell').forEach(c => c.remove());
+    
+        // Sicherstellen, dass config existiert
+        if (!config || !config.island) {
+            console.error("initGrid wurde ohne gültige Insel-Daten aufgerufen!");
+            return;
+        }
         
-       			 // PRÜFUNG: Ist diese Koordinate (x,y) in der Liste der Haie?
-       			 if (config.sharks) {
-           			 const hasShark = config.sharks.some(s => s.x === x && s.y === y);
-            			if (hasShark) cell.innerText = '🦈';
-       			 }
-        
-        		grid.appendChild(cell);
-   		 }
-    	}
+        for (let i = 0; i < 64; i++) {
+                const x = i % 8; const y = Math.floor(i / 8);
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+    
+            // Insel platzieren
+            if (x === config.island.x && y === config.island.y) {
+                cell.innerText = '🏝️';
+            } 
+
+            // 2. Schatz
+            else if (config.treasure && x === config.treasure.x && y === config.treasure.y) {
+                const img = document.createElement('img');
+                img.src = 'images/treasure.png';
+                img.style.width = '40px';  
+                img.style.height = '40px';
+                cell.appendChild(img);
+            }
+    
+            // 3. Haie
+            if (config.sharks) {
+                const hasShark = config.sharks.some(s => s.x === x && s.y === y);
+                if (hasShark) cell.innerText = '🦈';
+            }
+    
+            grid.appendChild(cell);
+        }
+    }
 
     function reset() {
-        // 1. Die Arbeitskopie des Levels wieder vom Original-Bauplan wiederherstellen
-        const originalConfig = gameData.levels.find(l => l.id === gameData.currentLevelNum) || gameData.levels[0];
-        currentLevelConfig = JSON.parse(JSON.stringify(originalConfig));
+        // 0. Sicherstellen, dass bei Reset Endlosschleifen abgebrochen werden
+        isRunning = false; // Signalisiert dem Code-Abarbeiter: Hör auf!
 
-   	 	// 2. Roboter wieder auf Start zurücksetzen
-        const startPos = originalConfig.start || { x: 0, y: 7 };
+        // Alle laufenden Timeouts löschen, damit keine verzögerten 
+        // Bewegungen aus der "alten" Ausführung mehr passieren.
+        if (runnerTimeout) {
+            clearTimeout(runnerTimeout);
+        }
+
+        // 1. FALLUNTERSCHEIDUNG: Übung oder normales Level?
+        const currentId = gameData.currentLevelNum;
+        const isPractice = typeof currentId === 'string' && currentId.startsWith('P');
+
+        if (!isPractice) {
+            // NUR bei normalen Leveln stellen wir die Konfiguration aus dem Bauplan wieder her
+            const originalConfig = gameData.levels.find(l => l.id === currentId) || gameData.levels[0];
+            currentLevelConfig = JSON.parse(JSON.stringify(originalConfig));
+        } else {
+            // Bei Practice-Leveln (P1, P2...) behalten wir die aktuelle currentLevelConfig,
+            // da dort unsere Zufallswerte (start, island) drinstehen!
+            console.log("Übungsmodus: Zufallskarte bleibt erhalten.");
+        }
+
+        // 2. Roboter auf Start zurücksetzen
+        // Wir nehmen die startPos direkt aus der currentLevelConfig (die entweder geladen oder gewürfelt wurde)
+        totalSteps = 0;
+        const startPos = currentLevelConfig.start || { x: 0, y: 7 };
         robo = { x: startPos.x, y: startPos.y, dir: 270 };   
 
-        // 3. Das Grid neu zeichnen (damit der Schatz wieder erscheint)
+        // 3. Das Grid neu zeichnen
+        // Wichtig: Wir übergeben die aktuelle Config (bei Practice sind das die Zufallswerte)
         initGrid(currentLevelConfig);
         updateUI();
-    
-  	  	// 4. Meldungen verstecken
-  	  	document.getElementById('success').style.display = 'none';
- 	   	document.getElementById('warning').style.display = 'none';
-    
- 	   	// 5. Die gelbe Markierung von den Blöcken entfernen
- 	   	if(workspace) {
- 	   	    workspace.highlightBlock(null);
- 	   	}
+
+        // 4. Meldungen verstecken
+        document.getElementById('success').style.display = 'none';
+        document.getElementById('warning').style.display = 'none';
+
+        // 5. Die gelbe Markierung von den Blöcken entfernen
+        if(workspace) {
+            workspace.highlightBlock(null);
+        }
     }
 
     function updateUI() {
@@ -674,6 +1043,11 @@
     // Die eigentliche Bewegungs-Logik (ausgelagert aus runCode)
     function moveForwardAction() {
         const config = currentLevelConfig;
+
+        // Position für Spur-Effekt speichern
+        const oldX = robo.x;
+        const oldY = robo.y;
+
         let d = (robo.dir % 360 + 360) % 360;
         let nx = robo.x, ny = robo.y;
         if (d === 0) nx++; else if (d === 90) ny++; else if (d === 180) nx--; else if (d === 270) ny--;
@@ -684,6 +1058,12 @@
             myInterpreter = null; // Stoppt den Interpreter bei Fehler
             return;
         }
+
+        // Nach der Bewegung SPur hinterlassen
+        if (nx !== oldX || ny !== oldY) { // Nur wenn er sich wirklich bewegt hat
+            startSmoothTrail(300);
+        }
+        
         robo.x = Math.max(0, Math.min(7, nx));
         robo.y = Math.max(0, Math.min(7, ny));
         updateUI();
@@ -691,15 +1071,24 @@
 
     function runCode() {
         reset();
+
+        isRunning = true; 
+        totalSteps = 0;
         
         // Code generieren mit dem neuen Generator-Objekt
         const code = javascript.javascriptGenerator.workspaceToCode(workspace);
+        if (!code) return;
+
+        const wrapper = function() {
+            moveForwardAction(); // Deine eigentliche Spiellogik
+            window.lastStepWasMovement = true; // Dem Interpreter sagen: "Bitte hier pausieren!"
+        };
         
         if (!code) return; // Falls kein Code da ist, nichts tun
 
         try {
             myInterpreter = new Interpreter(code, (interpreter, scope) => {
-                interpreter.setProperty(scope, 'moveForward', interpreter.createNativeFunction(moveForwardAction));
+                interpreter.setProperty(scope, 'moveForward', interpreter.createNativeFunction(wrapper));
                 interpreter.setProperty(scope, 'turnLeft', interpreter.createNativeFunction(() => { robo.dir -= 90; updateUI(); }));
                 interpreter.setProperty(scope, 'turnRight', interpreter.createNativeFunction(() => { robo.dir += 90; updateUI(); }));
                 interpreter.setProperty(scope, 'collectTreasure', interpreter.createNativeFunction(() => { collectTreasure(); }));
@@ -712,80 +1101,291 @@
             runStep();
         } catch (e) {
             console.error("Interpreter Fehler:", e);
+            isRunning = false; // Bei Fehler stoppen
         }
     }
 
-    function runStep() {
-        if (myInterpreter && myInterpreter.step()) {
-            // Ein Schritt ausführen, dann 200ms warten
-            runnerTimeout = setTimeout(runStep, 50);
-        } else {
-            // Wenn fertig, Sieg prüfen
-            checkWin();
+ 
+
+function runStep() {
+    // 1. ABBRUCH-CHECK: Wurde Reset gedrückt?
+    if (!myInterpreter || !isRunning) {
+        console.log("Ausführung gestoppt.");
+        return; 
+    }
+
+    window.lastStepWasMovement = false; 
+    let hasMoreCode = true;
+    
+    // 2. SICHERHEIT GEGEN ENDLOSSCHLEIFEN
+    // Wir zählen, wie viele Logik-Schritte der Interpreter macht, 
+    // ohne dass Robi sich bewegt.
+    let logicBreakCounter = 0; 
+
+    while (hasMoreCode && !window.lastStepWasMovement) {
+        hasMoreCode = myInterpreter.step();
+        
+        logicBreakCounter++;
+        totalSteps++;
+
+        // Wenn der Interpreter 2000 Logik-Schritte macht, ohne zu ziehen...
+        if (logicBreakCounter > 2000 || totalSteps > MAX_STEPS) {
+            isRunning = false;
+            alert("Endlosschleife oder zu langes Programm erkannt! Robi bricht ab.");
+            reset(); // Ruft deine Reset-Funktion auf
+            return;
         }
     }
+
+    if (hasMoreCode && isRunning) {
+        // Animation abwarten, dann nächster Schritt
+        runnerTimeout = setTimeout(runStep, gameSpeed); 
+    } else if (!hasMoreCode) {
+        isRunning = false;
+        console.log("Programm beendet. Prüfe Siegbedingungen...");
+        checkWin();
+    }
+}
 
     function checkWin() {
         const config = currentLevelConfig;
-        const levelId = gameData.currentLevelNum;
+        const levelId = gameData.currentLevelNum; // Das ist deine definierte Variable
+        
+        // KORREKTUR: Hier muss levelId stehen, nicht currentId
+        const isPractice = typeof levelId === 'string' && levelId.startsWith('P');
+        
         if (!config) return;
 
-        // Bedingung 1: Roboter ist auf der Insel
+        // Bedingung: Roboter ist auf der Insel
         const onIsland = (robo.x === config.island.x && robo.y === config.island.y);
-        
-        // Bedingung 2: Es gibt keinen Schatz mehr im Level-Objekt
+        // Bedingung: Schatz eingesammelt (falls vorhanden)
         const treasureCollected = (config.treasure === null);
 
-        if (onIsland && treasureCollected) {
-            // --- PUNKTE LOGIK ---
-            // Wie oft wurde dieses Level schon geschafft? (Standard: 0)
-            let timesCompleted = gameData.completedLevels[levelId] || 0;
-            let pointsEarned = 0;
+        if (isPractice) {
+            // --- ÜBUNGS-MODUS ---
+            // WICHTIG: Wir prüfen auch hier, ob er auf der Insel angekommen ist!
+            if (onIsland) {
+                // 1. Score um 2 erhöhen
+                gameData.score += 2;
+                localStorage.setItem('robo_score', gameData.score);
+                
+                // 2. Feedback anzeigen
+                spawnCoins(2); 
+                updateScoreDisplay();
 
-            if (timesCompleted === 0) {
-                pointsEarned = 5;
-                spawnCoins(pointsEarned);
-
-            } else if (timesCompleted === 1) {
-                pointsEarned = 1;
-                spawnCoins(pointsEarned);
-
-            } else {
-                pointsEarned = 0;
+                // 3. Definition für den Neustart finden
+                const practiceDef = gameData.levels.find(l => l.id === levelId);
+                
+                // 4. Kurze Pause für den Erfolg, dann neues Level würfeln
+                setTimeout(() => {
+                    startPractice(practiceDef); 
+                }, 500);
             }
+        }
 
-            // Punkte gutschreiben
-            gameData.score += pointsEarned;
-            // Zähler für dieses Level erhöhen
-            gameData.completedLevels[levelId] = timesCompleted + 1;
+        else {
+            // Bedingung 1: Roboter ist auf der Insel
+            const onIsland = (robo.x === config.island.x && robo.y === config.island.y);
+            
+            // Bedingung 2: Es gibt keinen Schatz mehr im Level-Objekt
+            const treasureCollected = (config.treasure === null);
 
-            // Im LocalStorage speichern
-            localStorage.setItem('robo_score', gameData.score);
-            localStorage.setItem('completed_levels', JSON.stringify(gameData.completedLevels));
+            if (onIsland && treasureCollected) {
+                // --- PUNKTE LOGIK ---
 
-            // UI aktualisieren
-            updateScoreDisplay()
+                // --- BLOCK-PRÜFUNG FÜR BESTIMMTE LEVEL ---
+                if (levelId === 19 || levelId === 21 || levelId === 23) {
+                    const usedRepeat = isBlockUsed('controls_repeat_ext'); // Technischer Name der Zählschleife
+                    if (!usedRepeat) {
+                        const warningBox = document.getElementById('warning');
+                        warningBox.innerText = "Nutze eine Zählschleife (Wiederhole X mal), um das Level zu beenden!";
+                        warningBox.style.display = 'block';
+                        setTimeout(() => { warningBox.style.display = 'none'; }, 3000);
+                        return; // Beendet die Funktion -> Kein Sieg!
+                    }
+                }
+                if (levelId === 30 || levelId === 31) {
+                    const usedRepeat = isBlockUsed('controls_whileUntil'); // Technischer Name der Bedingungsschleife
 
-            celebration();
-            document.getElementById('success').style.display = 'block';
-            if(gameData.currentLevelNum === gameData.unlockedLevel) {
-                gameData.unlockedLevel++;
-                localStorage.setItem('unlocked_level', gameData.unlockedLevel);
+                    if (!usedRepeat) {
+                        const warningBox = document.getElementById('warning');
+                        warningBox.innerText = "Nutze eine Bedingungsschleife und einen Sensor (Wiederhole, bis X), um das Level zu beenden!";
+                        warningBox.style.display = 'block';
+                        setTimeout(() => { warningBox.style.display = 'none'; }, 3000);
+                        return; // Beendet die Funktion -> Kein Sieg!
+                    }
+                }
+                if (levelId === 32 || levelId === 33 || levelId === 34) {
+                    const usedRepeat = isBlockUsed('controls_whileUntil'); // Technischer Name der Bedingungsschleife
+                    const usedOnIsland = isBlockUsed('on_island'); 
+                    const usedOnTreasure = isBlockUsed('on_treasure'); 
 
-                updateNavigationButtons();
-                renderLevelPath();
+
+                    if (!usedRepeat || !usedOnIsland || !usedOnTreasure) {
+                        const warningBox = document.getElementById('warning');
+                        warningBox.innerText = "Nutze zwei Bedingungsschleifen und beide Sensoren, um das Level zu beenden!";
+                        warningBox.style.display = 'block';
+                        setTimeout(() => { warningBox.style.display = 'none'; }, 3000);
+                        return; // Beendet die Funktion -> Kein Sieg!
+                    }
+                }
+                if (levelId === 35) {
+                    const usedRepeat = isBlockUsed('controls_whileUntil'); // Technischer Name der Bedingungsschleife
+                    const usedOnIsland = isBlockUsed('on_island'); 
+                    const usedOnTreasure = isBlockUsed('on_treasure'); 
+                    const usedSharkFront= isBlockUsed('shark_front'); 
+                    const usedNegation = isBlockUsed('logic_negation');
+
+
+                    if (!usedRepeat || !usedOnIsland || !usedOnTreasure || !usedSharkFront || !usedNegation) {
+                        const warningBox = document.getElementById('warning');
+                        warningBox.innerText = "Nutze alle drei Sensoren, eine Verneinung, zwei Bedinungsschleifen mit 'bis' und eine Bedinungsschleife mit 'solange', um das Level zu beenden!";
+                        warningBox.style.display = 'block';
+                        setTimeout(() => { warningBox.style.display = 'none'; }, 3000);
+                        return; // Beendet die Funktion -> Kein Sieg!
+                    }
+                }
+                if (levelId === 36 || levelId === 37) {
+                    const usedRepeat = isBlockUsed('controls_whileUntil'); // Technischer Name der Bedingungsschleife
+                    const usedOnIsland = isBlockUsed('on_island'); 
+                    const usedOnTreasure = isBlockUsed('on_treasure'); 
+                    const usedSharkFront= isBlockUsed('shark_front'); 
+                    const usedNegation = isBlockUsed('logic_negation');
+
+
+                    if (!usedRepeat || !usedOnIsland || !usedOnTreasure || !usedSharkFront || !usedNegation) {
+                        const warningBox = document.getElementById('warning');
+                        warningBox.innerText = "Nutze alle drei Sensoren, zwei Verneinungen, zwei Bedinungsschleifen mit 'bis' und zwei Bedinungsschleifen mit 'solange', um das Level zu beenden!";
+                        warningBox.style.display = 'block';
+                        setTimeout(() => { warningBox.style.display = 'none'; }, 3000);
+                        return; // Beendet die Funktion -> Kein Sieg!
+                    }
+                }
+                if (levelId === 38) {
+                    const usedRepeat = isBlockUsed('controls_whileUntil'); // Technischer Name der Bedingungsschleife
+                    const usedOnIsland = isBlockUsed('on_island'); 
+                    const usedOnTreasure = isBlockUsed('on_treasure'); 
+                    const usedSharkRight= isBlockUsed('shark_right'); 
+
+
+                    if (!usedRepeat || !usedOnIsland || !usedOnTreasure || !usedSharkRight) {
+                        const warningBox = document.getElementById('warning');
+                        warningBox.innerText = "Nutze drei Sensoren, zwei Bedinungsschleifen mit 'bis' und zwei Bedinungsschleifen mit 'solange', um das Level zu beenden!";
+                        warningBox.style.display = 'block';
+                        setTimeout(() => { warningBox.style.display = 'none'; }, 3000);
+                        return; // Beendet die Funktion -> Kein Sieg!
+                    }
+                }
+                if (levelId === 39) {
+                    const usedRepeat = isBlockUsed('controls_whileUntil'); // Technischer Name der Bedingungsschleife
+                    const usedOnIsland = isBlockUsed('on_island'); 
+                    const usedOnTreasure = isBlockUsed('on_treasure'); 
+                    const usedSharkRight= isBlockUsed('shark_right'); 
+                    const usedSharkLeft= isBlockUsed('shark_left'); 
+
+
+
+                    if (!usedRepeat || !usedOnIsland || !usedOnTreasure || !usedSharkRight || !usedSharkLeft) {
+                        const warningBox = document.getElementById('warning');
+                        warningBox.innerText = "Nutze vier Sensoren, zwei Bedinungsschleifen mit 'bis' und zwei Bedinungsschleifen mit 'solange', um das Level zu beenden!";
+                        warningBox.style.display = 'block';
+                        setTimeout(() => { warningBox.style.display = 'none'; }, 3000);
+                        return; // Beendet die Funktion -> Kein Sieg!
+                    }
+                }
+                if (levelId === 41) {
+                    const usedRepeat = isBlockUsed('controls_whileUntil'); // Technischer Name der Bedingungsschleife
+                    const usedOnIsland = isBlockUsed('on_island'); 
+                    const usedOnTreasure = isBlockUsed('on_treasure'); 
+                    const usedIfElse = isBlockUsed('controls_if');
+
+ 
+
+                    if (!usedRepeat || !usedOnIsland || !usedOnTreasure || !usedIfElse) {
+                        const warningBox = document.getElementById('warning');
+                        warningBox.innerText = "Nutze zwei Sensoren, eine Bedinungsschleifen mit 'bis' und eine Verzweigung, um das Level zu beenden!";
+                        warningBox.style.display = 'block';
+                        setTimeout(() => { warningBox.style.display = 'none'; }, 3000);
+                        return; // Beendet die Funktion -> Kein Sieg!
+                    }
+                }
+                if (levelId === 42 || levelId === 43 || levelId === 44) {
+                    const usedRepeat = isBlockUsed('controls_whileUntil'); // Technischer Name der Bedingungsschleife
+                    const usedOnIsland = isBlockUsed('on_island'); 
+                    const usedSharkFront = isBlockUsed('shark_front'); 
+                    const usedIfElse = isBlockUsed('controls_if');
+
+ 
+
+                    if (!usedRepeat || !usedOnIsland || !usedSharkFront || !usedIfElse) {
+                        const warningBox = document.getElementById('warning');
+                        warningBox.innerText = "Nutze zwei Sensoren, eine Bedinungsschleifen mit 'bis' und eine Verzweigung, um das Level zu beenden!";
+                        warningBox.style.display = 'block';
+                        setTimeout(() => { warningBox.style.display = 'none'; }, 3000);
+                        return; // Beendet die Funktion -> Kein Sieg!
+                    }
+                }
+
+
+                // Wie oft wurde dieses Level schon geschafft? (Standard: 0)
+                let timesCompleted = gameData.completedLevels[levelId] || 0;
+                let pointsEarned = 0;
+
+                if (timesCompleted === 0) {
+                    pointsEarned = 5;
+                    spawnCoins(pointsEarned);
+
+                } else if (timesCompleted === 1) {
+                    pointsEarned = 1;
+                    spawnCoins(pointsEarned);
+
+                } else {
+                    pointsEarned = 0;
+                }
+
+                // Punkte gutschreiben
+                gameData.score += pointsEarned;
+                // Zähler für dieses Level erhöhen
+                gameData.completedLevels[levelId] = timesCompleted + 1;
+
+                // Im LocalStorage speichern
+                localStorage.setItem('robo_score', gameData.score);
+                localStorage.setItem('completed_levels', JSON.stringify(gameData.completedLevels));
+
+                // UI aktualisieren
+                updateScoreDisplay()
+
+                celebration();
+
+                // Speizialfall: Nachricht für Quiz 
+                if (levelId === 5 || levelId === 11 || levelId === 17 || levelId === 28) {
+                    setTimeout(() => {
+                        startTutorial("quiz");
+                    }, 500);
+                } else {
+                    // Standard: Das grüne Erfolgsfenster anzeigen
+                    document.getElementById('success').style.display = 'block';
+                }
+
+                if(gameData.currentLevelNum === gameData.unlockedLevel) {
+                    gameData.unlockedLevel++;
+                    localStorage.setItem('unlocked_level', gameData.unlockedLevel);
+
+                    updateNavigationButtons();
+                    renderLevelPath();
+                }
+            } else if (onIsland && !treasureCollected) {
+                // Kleiner Hinweis, falls man den Schatz vergessen hat
+                const warningBox = document.getElementById('warning');
+                warningBox.innerText = "Du musst zuerst den Schatz einsammeln!";
+                warningBox.style.display = 'block';
+                // Nachricht nach 2 Sekunden wieder ausblenden
+                setTimeout(() => {
+                            warningBox.style.display = 'none';
+                            // Optional: Text wieder auf den Standard zurücksetzen
+                            warningBox.innerText = "Achtung! Ein Hai! 🦈";
+                        }, 2000);      
             }
-        } else if (onIsland && !treasureCollected) {
-            // Kleiner Hinweis, falls man den Schatz vergessen hat
-            const warningBox = document.getElementById('warning');
-            warningBox.innerText = "Du musst zuerst den Schatz einsammeln!";
-            warningBox.style.display = 'block';
-            // Nachricht nach 2 Sekunden wieder ausblenden
-            setTimeout(() => {
-                        warningBox.style.display = 'none';
-                        // Optional: Text wieder auf den Standard zurücksetzen
-                        warningBox.innerText = "Achtung! Ein Hai! 🦈";
-                    }, 2000);      
         }
     }
 
@@ -820,17 +1420,32 @@
 
     // Hilfsfunktion zum Aktualisieren der Anzeige
     function updateScoreDisplay() {
-        // Falls gameData.score noch nicht definiert ist, nutze 0
+        // 1. Den aktuellen Wert holen
         const currentScore = gameData.score || 0;
-        const element = document.getElementById('score-count');
-        if (element) {
-            element.innerText = currentScore;
+
+        // 2. Anzeige in der Programming-View (Spielfeld)
+        const elementGame = document.getElementById('score-count');
+        if (elementGame) {
+            elementGame.innerText = currentScore;
+        }
+
+        // 3. NEU: Anzeige im Hauptmenü (Level-Auswahl)
+        const elementMenu = document.getElementById('main-score');
+        if (elementMenu) {
+            elementMenu.innerText = currentScore;
+        }
+
+        // 4. NEU: Anzeige im Shop (falls das Element schon existiert)
+        const elementShop = document.getElementById('shop-coin-count');
+        if (elementShop) {
+            elementShop.innerText = currentScore;
         }
     }
 
     // --- TUTORIAL LOGIK ---
     let tutStep = 0;
     let currentTutSet = [];
+    let stepCounter = 0;
     const tutData = {
         "intro": [
             { t: "Das Ziel", m: "Programmiere Robi so, dass er die Insel erreicht.", p: {top: '50%', left: '10%'} },
@@ -839,15 +1454,23 @@
             { t: "Öffne ein bestehendes Programm", m: "Klicke auf den Laden-Button, um ein bestehendes Programm von deinem Computer zu öffnen.", p: {top: '10%', left: '45%'} },
             { t: "Starte dein Programm", m: "Klicke auf den Play-Button, um dein Programm zu testen.", p: {top: '30%', left: '10%'} },
             { t: "Setze die Welt zurück", m: "Klicke auf den Reset-Button, um die Robi-Welt auf Start zurückzusetzen.", p: {top: '30%', left: '20%'} },
-            { t: "Gehe zur Level-Übersicht", m: "Klicke auf den Übersicht-Button, um zur Level-Übersicht zurück zu gelangen.", p: {top: '55%', left: '10%'} },
+            { t: "Gehe zum Menü", m: "Klicke auf den Menü-Button, um zur Level-Übersicht zurück zu gelangen.", p: {top: '55%', left: '10%'} },
             { t: "Wechsle die Level direkt", m: "Klicke auf ◀◀ oder ▶▶, um direkt zum vorherigen oder nächsten Level zu gelangen. Du kannst nur zum nächsten Level gehen, wenn du das aktuelle Level abgeschlossen hast.", p: {top: '45%', left: '20%'} },
             { t: "Falls du Hilfe brauchst", m: "Klicke auf den Hilfe-Button, um dieses Tutorial erneut aufzurufen.", p: {top: '55%', left: '15%'} },
         ],
         "turnLeft": [
             { t: "Der Block 'links drehen'", m: "Verwende den Block 'links drehen', um Robi nach links zu drehen. Bedenke, dass es immer um links aus der Sicht von Robi geht!", p: {top: '40%', left: '50%'}}
         ],
+        "trashcan":  [
+            { t: "Code löschen", m: "Wenn du einen Fehler gemacht hast und deinen Code aus der Programmierfläche löschen willst, ziehe ihn mit gedrückter linker Maustaste auf den Mülleimer unten rechts. Lasse die Maustaste los, wenn sich der Deckel des Mülleimers öffnet.", p: {top: '60%', left: '70%'} },
+        ],
         "turnRight": [
             { t: "Der Block 'rechts drehen'", m: "Verwende den Block 'rechts drehen', um Robi nach rechts zu drehen. Bedenke, dass es immer um rechts aus der Sicht von Robi geht!", p: {top: '40%', left: '50%'}}
+        ],
+        "practice": [
+            { t: "Übungs-Level", m: "Herzlichen Glückwunsch, du hast eine Niveaustufe mit einem Quiz erfolgreich abgeschlossen! Immer, wenn du ein Quiz bestehst, schaltest du das nächste Level frei. Zusätzlich schaltest du aber auch ein Übungslevel frei.", p: {top: '40%', left: '40%'} },
+            { t: "Übungs-Level", m: "In einem Übungslevel kannst du die neu gelernten Blöcke in immer wieder neuen Levels üben und so Geld verdienen. Willst du weiter an den normalen Levels arbeiten, gehe zurück zum Menü und wähle das nächste Level aus. Übungslevel erkennst du im Menü an dem Blitz-Symbol.", p: {top: '40%', left: '40%'} },
+
         ],
         "sharks": [
             { t: "Achtung Haie!", m: "In diesem Level gibt es Haie. Robi kann nicht auf ein Feld gehen, auf dem sich ein Hai befindet! Robi muss um die Haie herum gehen.", p: {top: '50%', left: '10%'} }
@@ -858,27 +1481,99 @@
         ],
         "zählschleife": [
             { t: "Zählschleifen", m: "Im letzten Level musstest du sehr oft denselben Befehl hintereinander ausführen. Eine Zählschleife hilft dir, wenn du oft denselben Befehl hintereinander ausführen musst. Du gibst dafür im Schleifen-Kopf an, wie oft etwas wiederholt werden soll. In der Schleife sagst du, was wiederholt werden soll.", p: {top: '40%', left: '40%'} },
-            { t: "Der Zählschleifen-Block", m: "Nutze den Block 'Zählschleife', wenn du denselben Befehl mehrmals hintereinander ausführen willst. Verwende den Block nicht, wenn etwas nur einmal wiederholt wird.", p: {top: '50%', left: '55%'} },
+            { t: "Der Zählschleifen-Block", m: "Nutze den Block 'Zählschleife', wenn du denselben Befehl mehrmals hintereinander ausführen willst. Ziehe dafür zum Beispiel den block 'vorwärts' in die Schleife und gib ein, wie oft Robi 1 Feld vorwärts gehen soll. Verwende den Block nicht, wenn etwas nur einmal wiederholt wird.", p: {top: '50%', left: '55%'} },
         ],
         "zählschleife-2": [
             { t: "Übe mit Zählschleifen", m: "Nutze eine Zählschleife.", p: {top: '40%', left: '40%'} }
         ],
-        "bedingungsschleife": [
-            { t: "Bedingungsschleifen", m: "Bedinungsschleifen helfen, deine Programme noch besser auf verschiedene Situationen anzupassen. Bei einer Bedinungsschleife gibst du im Schleifen-Kopf eine Bedingung an. Es wird immer wieder überprüft, ob die Bedingung erfüllt ist. Solange die Bedingung erfüllt ist, werden die Befehle in der Schleife wiederholt.", p: {top: '40%', left: '40%'} },
-            { t: "Der Bedingungsschleifen-Block", m: "Nutze den Block 'Bedingungsschleife', wenn ein Befehl so oft wiederholt werden soll, wie eine Bedinung erfüllt ist. Zum Beispiel: Solange der Weg vor Robi frei ist, gehe 1 Schritt vorwärts.", p: {top: '40%', left: '40%'} },
+        "quiz": [
+            { t: "Teste dein Wissen", m: "Kehre zum Hauptmenü zurück, um die erste Stufe mit einem kurzen Quiz abzuschließen.", p: {top: '40%', left: '40%'} },
+            { t: "Teste dein Wissen", m: "Haben die Antwortmöglichkeiten Kreise zum anklicken, ist eine Antwort richtig. Haben die Antwortmöglichkeiten Kästchen zum anklicken, sind 2 oder mehr Antworten richtig.", p: {top: '40%', left: '40%'} }
+        ],
+        "zoom": [
+            { t: "Größer und kleiner zoomen", m: "Wenn nicht alle Blöcke in die Programmierfläche passen, kannst du rechts unten über das + und - Zeichen zoomen. Am iPad kannst du auch mit zwei fingern rein- und rauszoomen.", p: {top: '60%', left: '70%'} }
         ],
         "on_island": [
+            { t: "Sensoren-Blöcke", m: "In diesem Level werden 2 neue Arten von Blöcken eingeführt. Die erste Art sind Sensoren-Blöcke. Mit einem Sensor kann Robi überprüfen, was um ihn herum geschieht.", p: {top: '40%', left: '40%'} },
+            { t: "Sensoren-Blöcke", m: "Sensoren-Blöcke laufen an den Seiten spitz zu und sind türkis. Der erste Sensor heißt 'Auf einer Insel'. Robi kann damit erkennen, ob er gerade auf einer Insel steht oder nicht. Du kannst Sensoren nur in bestimmte andere Blöcke einsetzen, die überprüfen, was der Sensor sieht.", p: {top: '40%', left: '40%'} },
 
+        ],
+        "bedingungsschleife": [
+            { t: "Bedingungsschleifen", m: "Bedinungsschleifen helfen, deine Programme noch besser auf verschiedene Situationen anzupassen. Bei einer Bedinungsschleife gibst du im Schleifen-Kopf eine Bedingung an. Es wird immer wieder überprüft, ob die Bedingung erfüllt ist. Bis die Bedingung erfüllt ist, werden die Befehle in der Schleife wiederholt. Ziehe als Bedingung einen Sensoren-Block in den Schleifenkopf.", p: {top: '40%', left: '40%'} },
+            { t: "Der Bedingungsschleifen-Block", m: "Nutze den Block 'Bedingungsschleife', wenn ein Befehl wiederholt werden soll, bis eine Bedinung erfüllt ist. Zum Beispiel: Gehe 1 Schritt vorwärts, bis du auf einer Insel stehst.", p: {top: '40%', left: '40%'} },
+        ],
+        "on_treasure": [
+            { t: "Sensoren-Block 'Auf einem Schatz'", m: "Mit dem Sensoren-Block 'Auf einem Schatz' kannst du überprüfen, ob Robi gerade auf einem Schatz steht oder nicht. Auch diesen Block kannst du in Bedingungsschleifen nutzen.", p: {top: '40%', left: '40%'} },
+        ],
+        "bedingungsschleife_while": [
+            { t: "Bedingungsschleife mit 'wiederhole solange'", m: "Du kannst bereits Befehle wiederholt ausführen, bis eine Bedingung erfüllt ist. Du kannst die Bedingungsschleife aber auch so nutzen, dass die Blöcke wiederholt werden, solange eine Bedingung erfüllt ist", p: {top: '40%', left: '40%'} },
+            { t: "Bedingungsschleife mit 'wiederhole solange'", m: "So kannst du zum Beispiel vorwärts gehen, solange kein Hai vor dir ist. Dafür klickst du im Bedingungsschleife-Block auf das Wort 'bis' und wählst dann 'solange' aus.", p: {top: '40%', left: '40%'} },
+        ],
+        "shark_front": [
+            { t: "Sensoren-Block 'Hai vorne", m: "Mit dem Sensoren-Block 'Hai vorne' überprüft Robi, ob auf sich auf dem Feld vor ihm ein Hai befindet. Du kannst den Sensor als Bedinung in Bedingungsschleifen nutzen:", p: {top: '40%', left: '40%'} },
+        ],
+        "logic_negate": [
+            { t: "Der Verneinungs-Block 'nicht'", m: "Robi soll laufen, solange kein Hai vor ihm ist. Dafür müssen wir in der Bedinungsschleife mit 'solange' als Bedingung 'kein Hai vorne' festlegen. Da unser Sensor aber 'Hai vorne' heißt, müssen wir eine Verneinung einbauen.", p: {top:'40%', left: '40%'} },
+            { t: "Der Verneinungs-Block 'nicht'", m: "Nutze eine Bedingungsschleife. Wähle dabei 'solange' anstatt 'bis' aus. Nutze für die Bedinung den Verneinungs-BLock und den Sensor 'Hai vorne'.", p: {top:'40%', left: '40%'} },
+        ],
+        "msg_lvl36": [
+            { t: "Übe mit den Bedingungsschleifen", m: "Nutze zum Lösen dieses Levels zwei Bedingungsschleifen mit 'bis' und zwei Bedingungsschleifen mit 'solange'.", p: {top: '40%', left: '40%'} },
+        ],
+        "shark_right": [
+            { t: "Sensoren-Block 'Hai rechts'", m: "Der Sensoren-Block 'Hai rechts' überprüft, ob sich auf dem Feld rechts von Robi aktuell ein Hai befindet. Verwende den Block in Kombination mit einer Bedingungsschleife mit 'solange'.", p: {top: '40%', left: '40%'} },
+        ],
+        "shark_left": [
+            { t: "Sensoren-Block 'Hai links'", m: "Der Sensoren-Block 'Hai links' überprüft, ob sich auf dem Feld links von Robi aktuell ein Hai befindet. Verwende den Block in Kombination mit einer Bedingungsschleife mit 'solange'.", p: {top: '40%', left: '40%'} },
+        ],
+        "controls_if": [
+            { t: "Verzweigungen: Der 'Wenn-Dann-Sonst-Block'", m: "Wie du weißt bekommst du jedes Mal eine Fehlermeldung, wenn Robi versucht einen Schatz aufzuheben, wo kein Schatz ist. Mit dem 'Wenn-Dann-Sonst-Block' kannst du dieses Problem ganz einfach lösen.", p: {top: '40%', left: '40%'} },
+            { t: "Verzweigungen: Der 'Wenn-Dann-Sonst-Block'", m: "Der Wenn-Dann-Sonst-Block überprüft zuerst eine Bedingung. Hier kannst du Sensoren wie zum Beispiel 'Auf einem Schatz' nutzen. Wenn die Bedingung zutrifft, werden die Blöcke ausgeführt, die du darunter in den Block einfügst. Sonst (wenn die Bedingung nicht zurtifft) werden die Blöcke ausgeführt, die du hinter dem Wort 'sonst' einfügst.", p: {top: '40%', left: '40%'} },
+            { t: "Verzweigungen: Der 'Wenn-Dann-Sonst-Block'", m: "Nutze in diesem Level den Wenn-Dann-Sonst-Block, um zu überprüfen, ob Robi auf einem Schatz steht. Wenn ja, soll er den Schatz aufheben. Sonst soll er ein Mal vorwärts gehen. All das soll wiederholt werden, bis Robi auf einer Insel steht. Wie das geht, weißt du ja schon :)", p: {top: '40%', left: '40%'} },
+        ],
+        "controls_if_2": [
+            { t: "Übe Verzweigungen", m: "Auch hier kannst du mit einer Verzweigung ('Wenn-Dann-Sonst-Block') arbeiten. Wenn vor Robi ein Hai ist, soll er sich nach rechts drehen. Sonst soll er vorwärts gehen. Das alles wird wiederholt, bis Robi auf einer Insel steht.", p: {top:'40%', left: '40%'} },
+        ],
+        "controls_if_verschachtelt": [
+            { t: "Verschachtelte Verzweigungen", m: "Damit du Robi noch besser auf viele verschiedene Situationen vorbereiten kannst, kannst du Verzweigungen verschachteln. Dafür beginnst du die erste Verschachtelung wie gewohnt mit der Bedingung und dem 'dann tue...'. Im 'Sonst'-Teil fügst du aber einen weiteren Verzweigungs-Block ein und fragst dort die zweite Bedingung ab.", p: {top: '40%', left: '40%'} },
+            { t: "Verschachtelte Verzweigungen", m: "Nutze zuerst wieder eine Schleife bis Robi auf einer Insel steht. Nutze dann eine Verzweigung mit der Bedingung 'wenn auf einem Schatz', dann heben den Schatz auf. Füge in den sonst-Teil einen weiteren Verzweigungs-Block ein. Überprüfe auf 'Hai vorne' und weiche dem Hai aus. Sonst soll Robi vorwärts laufen.", p: {top: '40%', left: '40%'} },
+        ],
+        "logic_operation": [
+            { t: "Verknüpfen mehrerer Bedingungen", m: "Bisher konnte Robi links oder rechts um einen Hai herum gehen, weil nur vor ihm ein Hai war. Aber was ist, wenn vor Robi und links neben Robi ein Hai ist? Dann muss Robi rechts um den Hai herum laufen. Um in der Bedingung der Verzweigung zu überprüfen, ob vor Robi und links von Robi ein Hai ist, brauchst du den 'Verknüpfungs-Block'.", p: {top: '40%', left: '40%'} },
+            { t: "Der Verknüpfungs-Block", m: "Den Verknüpfungs-Block kannst du überall einsetzen, wo du auch Sensoren einsetzen kannst. Wenn du den Block einsetzt, kannst du zwei Sensoren in die freien Felder einsetzen. So kannst du überprüfen, ob vor Robi und links von Robi ein Hai ist.", p: {top: '40%', left: '40%'} },
         ]
     }
 
     function startTutorial(setName) {
-        currentTutSet = tutData[setName];
-        if (!currentTutSet) return;
+        if (!setName) return;
 
-        tutStep = 0;
-        document.getElementById('tutorial-overlay').style.display = 'flex';
-        updateTutBubble();
+        let newSteps = [];
+
+        // Fall A: setName ist ein Array
+        if (Array.isArray(setName)) {
+            setName.forEach(name => {
+                if (tutData[name]) newSteps = newSteps.concat(tutData[name]);
+            });
+        } 
+        // Fall B: setName ist ein einzelner String
+        else if (tutData[setName]) {
+            newSteps = tutData[setName];
+        }
+
+        if (newSteps.length === 0) return;
+
+        // PRÜFUNG: Läuft gerade schon ein Tutorial?
+        const overlay = document.getElementById('tutorial-overlay');
+        if (overlay.style.display === 'flex' && currentTutSet) {
+            // Falls ja: Hänge die neuen Schritte einfach hinten an das bestehende Set an!
+            currentTutSet = currentTutSet.concat(newSteps);
+            console.log("Tutorials wurden kombiniert. Neue Länge:", currentTutSet.length);
+        } else {
+            // Falls nein: Starte ganz normal von vorne
+            currentTutSet = newSteps;
+            tutStep = 0;
+            overlay.style.display = 'flex';
+            updateTutBubble();
+        }
     }
 
     function nextStep() {
@@ -916,7 +1611,7 @@
             zoom: {
                 controls: true,    // Zeigt die +/- Buttons an
                 wheel: true,       // Erlaubt Zoomen mit dem Mausrad
-                startScale: 1.0,   // Startgröße
+                startScale: 0.8,   // Startgröße
                 maxScale: 3,
                 minScale: 0.3,
                 scaleSpeed: 1.2,
@@ -931,6 +1626,7 @@
         showView('level-selection-view');
     };
 
+    // PROGRAMM SPEICHERN
     function saveBlocks() { 
         if (!workspace) return;
 
@@ -956,6 +1652,7 @@
         URL.revokeObjectURL(a.href);
     }
 
+    // PROGRAMM ÖFFNEN
     function loadBlocks() {
         document.getElementById('file-input').click();
     }
@@ -989,6 +1686,84 @@
         
         reader.readAsText(file);
     });
+
+    // GESAMTEN SPIELSTAND (SCORE; TUTORIALS; ACTIVATEDLEVELS) SPEICHERN
+    function exportSavegame() {
+        // Alle wichtigen Daten in ein Objekt packen
+        const saveData = {
+            unlockedLevel: gameData.unlockedLevel,
+            score: gameData.score,
+            completedLevels: gameData.completedLevels,
+            tutorials: {}
+        };
+
+        // Wir sammeln alle Tutorial-Fortschritte aus dem Speicher
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('tut_completed_')) {
+                saveData.tutorials[key] = localStorage.getItem(key);
+            }
+        }
+
+        // Datum und Uhrzeit für Dateinamen ermitteln
+        const jetzt = new Date();
+        // Format: DD-MM-YYYY_HH-mm
+        const zeitStempel = jetzt.toLocaleDateString() + "_" + jetzt.toLocaleTimeString().slice(0, 5);
+        // Ersetzt Punkte und Doppelpunkte durch Bindestriche für die Dateisicherheit
+        const dateiName = zeitStempel.replace(/[\:]/g, '-');
+
+        // JSON-Datei erstellen und Download auslösen
+        const dataStr = JSON.stringify(saveData, null, 2);
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `RobisProgrammierAbenteuer_Stand_${dateiName}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+    }
+
+    // GESAMTEN SPIELSTAND LADEN
+    function importSavegame(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const importedData = JSON.parse(e.target.result);
+
+                // 1. Daten in das laufende Spiel-Objekt schreiben
+                gameData.unlockedLevel = importedData.unlockedLevel || 1;
+                gameData.score = importedData.score || 0;
+                gameData.completedLevels = importedData.completedLevels || {};
+
+                // 2. Daten im LocalStorage des Browsers dauerhaft machen
+                localStorage.setItem('unlocked_level', gameData.unlockedLevel);
+                localStorage.setItem('robo_score', gameData.score);
+                localStorage.setItem('completed_levels', JSON.stringify(gameData.completedLevels));
+
+                // Tutorials wiederherstellen
+                if (importedData.tutorials) {
+                    for (const key in importedData.tutorials) {
+                        localStorage.setItem(key, importedData.tutorials[key]);
+                    }
+                }
+
+                // 3. Die Ansicht aktualisieren
+                renderLevelPath();
+                updateScoreDisplay();
+                
+            } catch (err) {
+                alert("Hoppla! Diese Datei scheint kein gültiger Spielstand zu sein.");
+                console.error(err);
+            }
+        };
+        reader.readAsText(file);
+        // Input zurücksetzen, damit dieselbe Datei nochmal gewählt werden könnte
+        event.target.value = '';
+    }
 
     // --- JUBEL LOGIK ---
     // Konfetti bei Lösen eines Levels
@@ -1105,6 +1880,626 @@
         }
     }
 
+    function startQuiz(quizDef) {
+        let quizHtml = `<div style="padding: 20px; color: #1e293b;"><h3>Wissens-Check</h3>`;
+        
+        quizDef.questions.forEach((q, i) => {
+            quizHtml += `<p><strong>${i+1}. ${q.q}</strong></p>`;
+            q.a.forEach((ans, j) => {
+                const type = q.multiple ? 'checkbox' : 'radio';
+                quizHtml += `<label><input type="${type}" name="q${i}" value="${j}"> ${ans}</label><br>`;
+            });
+        });
+        
+        quizHtml += `<br><button class="btn-green" onclick="checkQuizAnswers(${quizDef.id})">Prüfen</button></div>`;
+        
+        // Hier könntest du ein Modal/Overlay öffnen
+        showOverlay(quizHtml); 
+    }
+
+    function checkQuizAnswers(quizId) {
+        const quizDef = gameData.levels.find(l => l.id === quizId);
+        let allCorrect = true;
+
+        quizDef.questions.forEach((q, i) => {
+            const selected = Array.from(document.querySelectorAll(`input[name="q${i}"]:checked`)).map(el => parseInt(el.value));
+            if (JSON.stringify(selected.sort()) !== JSON.stringify(q.correct.sort())) {
+                allCorrect = false;
+            }
+        });
+
+        if (allCorrect) {
+            alert("Super! Alles richtig. Nächste Stufe freigeschaltet!");
+            gameData.unlockedLevel++;
+            localStorage.setItem('unlocked_level', gameData.unlockedLevel);
+            closeOverlay();
+            renderLevelPath();
+        } else {
+            alert("Da war noch ein Fehler dabei. Schau nochmal genau hin!");
+        }
+    }
+
+    function startPractice(practiceDef) {
+        console.log("Generiere neues Zufallslevel für Übung:", practiceDef.id);
+        // Generiere zufällige Koordinaten für Start und Insel
+        const randomStart = { 
+            x: Math.floor(Math.random()*8), 
+            y: 7 };
+        const randomIsland = { 
+            x: Math.floor(Math.random()*8), 
+            y: Math.floor(Math.random() * 5) + 3
+        };
+        
+        // Sicherstellen, dass Start nicht auf Insel ist
+        while(randomStart.x === randomIsland.x) randomStart.x = Math.floor(Math.random()*8);
+
+        // Standardwerte für Zufallselemente späterer Level, damit es auch ohne diese funktioniert
+        let generatedSharks = [];
+        let generatedTreasure = null;
+
+        // Hinzufügen weiterer Komponenten je nach Übungslevelkomplexität
+        if (practiceDef.id === 'P2') {
+            const sharkCount = Math.floor(Math.random() * 3) + 2; // 2-4 Haie
+            // Wir übergeben Start und Insel, um den Bereich einzugrenzen
+            generatedSharks = generateElementsBetween(sharkCount, randomStart, randomIsland, []);
+        } 
+        else if (practiceDef.id === 'P3' || practiceDef.id === 'P4' || practiceDef.id === 'P5') {
+            generatedSharks = generateElementsBetween(5, randomStart, randomIsland, []);
+            const treasures = {
+                x: Math.floor(Math.random()*8), 
+                y: Math.floor(Math.random() * 5) + 3
+            };
+            generatedTreasure = treasures;
+        }
+
+        currentLevelConfig = {
+            id: practiceDef.id,
+            type: 'practice',
+            start: randomStart,
+            island: randomIsland,
+            sharks: generatedSharks,
+            treasure: generatedTreasure,
+            blocks: practiceDef.blocks || ['move_forward', 'turn_left', 'turn_right']
+        };
+
+        // 3. UI aktualisieren
+        const title = document.getElementById('level-title');
+        if (title) title.innerText = "Übung: Zufallslevel";
+        
+        gameData.currentLevelNum = practiceDef.id;
+
+        // Spiel starten wie ein normales Level
+        console.log("Neue Gitter-Konfiguration:", currentLevelConfig);
+        initGrid(currentLevelConfig);
+        updateToolbox(currentLevelConfig.blocks);
+
+        if (typeof workspace !== 'undefined' && workspace) {
+            workspace.clear();
+        }
+
+        showView('programming-view');
+        reset();
+    }
+
+    // Hilfsfunktion, um Felder zu finden, die noch nicht besetzt sind
+    function generateElementsBetween(count, p1, p2, existingElements) {
+        let points = [];
+        
+        // Bereich berechnen (Bounding Box)
+        // Wir fügen +1/-1 Puffer hinzu, damit Haie nicht NUR exakt auf der Linie liegen
+        const minX = Math.max(0, Math.min(p1.x, p2.x) - 1);
+        const maxX = Math.min(7, Math.max(p1.x, p2.x) + 1);
+        const minY = Math.max(0, Math.min(p1.y, p2.y) - 1);
+        const maxY = Math.min(7, Math.max(p1.y, p2.y) + 1);
+
+        let attempts = 0;
+        while (points.length < count && attempts < 100) {
+            attempts++;
+            let newPoint = { 
+                x: Math.floor(Math.random() * (maxX - minX + 1)) + minX, 
+                y: Math.floor(Math.random() * (maxY - minY + 1)) + minY 
+            };
+            
+            // Prüfen, ob Feld belegt ist (Start, Insel oder andere Haie)
+            const isOccupied = 
+                (newPoint.x === p1.x && newPoint.y === p1.y) ||
+                (newPoint.x === p2.x && newPoint.y === p2.y) ||
+                existingElements.some(e => e.x === newPoint.x && e.y === newPoint.y) ||
+                points.some(p => p.x === newPoint.x && p.y === newPoint.y);
+            
+            if (!isOccupied) {
+                points.push(newPoint);
+            }
+        }
+        return points;
+    }
+
+    // OVERLAY FÜR QUIZ-LEVELS
+    function showOverlay(innerHtml) {
+        const overlay = document.getElementById('quiz-overlay');
+        const content = document.getElementById('quiz-content');
+        
+        content.innerHTML = innerHtml; // Nur den Inhalt der Karte füllen
+        overlay.style.display = 'flex'; // Sichtbar machen
+    }
+
+    function closeOverlay() {
+        document.getElementById('quiz-overlay').style.display = 'none';
+    }
+
+    function startQuiz(quizDef) {
+        gameData.currentLevelNum = quizDef.id; 
+        console.log("Quiz gestartet, ID gesetzt auf:", gameData.currentLevelNum);
+        // State initialisieren
+        currentQuizState.questions = quizDef.questions;
+        currentQuizState.answers = new Array(quizDef.questions.length).fill(null);
+        currentQuizState.currentIndex = 0;
+        currentQuizState.levelId = quizDef.id;
+
+        showCurrentQuestion();
+    }
+
+    function showCurrentQuestion() {
+        const q = currentQuizState.questions[currentQuizState.currentIndex];
+        const isLast = currentQuizState.currentIndex === currentQuizState.questions.length - 1;
+
+        let html = `
+            <div style="color: #1e293b; font-family: sans-serif;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <span style="font-size: 0.9em; color: #64748b;">Frage ${currentQuizState.currentIndex + 1} von ${currentQuizState.questions.length}</span>
+                    <button onclick="closeOverlay()" style="background: none; border: none; font-size: 20px; cursor: pointer;">&times;</button>
+                </div>
+                
+                <h3 style="margin-bottom: 20px;">${q.q}</h3>
+                <div style="background: #f8fafc; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+        `;
+
+        q.a.forEach((ans, j) => {
+            const type = q.multiple ? 'checkbox' : 'radio';
+            // Prüfen, ob schon etwas ausgewählt wurde (falls man zurückgeht)
+            const checked = isChecked(currentQuizState.currentIndex, j) ? 'checked' : '';
+            
+            html += `
+                <label style="display: block; padding: 10px; margin: 5px 0; border: 1px solid #e2e8f0; border-radius: 5px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+                    <input type="${type}" name="quiz_ans" value="${j}" ${checked} style="margin-right: 10px;"> ${ans}
+                </label>
+            `;
+        });
+
+        html += `</div><div style="display: flex; justify-content: space-between;">`;
+
+        // "Zurück"-Button (optional, falls sie sich umentscheiden)
+        if (currentQuizState.currentIndex > 0) {
+            html += `<button class="btn-gray" onclick="saveAnswer(); currentQuizState.currentIndex--; showCurrentQuestion();">Zurück</button>`;
+        } else {
+            html += `<span></span>`; // Platzhalter
+        }
+
+        if (isLast) {
+            html += `<button class="btn-green" onclick="finishQuiz()">Quiz beenden & prüfen</button>`;
+        } else {
+            html += `<button class="btn-blue" onclick="saveAnswer(); currentQuizState.currentIndex++; showCurrentQuestion();">Weiter</button>`;
+        }
+
+        html += `</div></div>`;
+        showOverlay(html);
+    }
+
+    // Hilfsfunktion: Speichert die aktuelle Auswahl im State
+    function saveAnswer() {
+        const selected = Array.from(document.querySelectorAll('input[name="quiz_ans"]:checked')).map(el => parseInt(el.value));
+        currentQuizState.answers[currentQuizState.currentIndex] = selected;
+    }
+
+    function isChecked(qIdx, ansIdx) {
+        const saved = currentQuizState.answers[qIdx];
+        return saved && saved.includes(ansIdx);
+    }
+
+    function finishQuiz() {
+        saveAnswer(); 
+        
+        let errors = [];
+        currentQuizState.questions.forEach((q, i) => {
+            const userAns = (currentQuizState.answers[i] || []).sort();
+            const correctAns = [...q.correct].sort();
+            
+            if (JSON.stringify(userAns) !== JSON.stringify(correctAns)) {
+                errors.push(i + 1); 
+            }
+        });
+
+        if (errors.length === 0) {
+            // --- ERFOLG ---
+            let successHtml = `
+                <div style="text-align: center; color: #1e293b;">
+                    <div style="font-size: 50px; margin-bottom: 10px;">🏆</div>
+                    <h2 style="color: #16a34a;">Großartig!</h2>
+                    <p>Du hast alle Fragen richtig beantwortet und die nächste Stufe freigeschaltet.</p>
+                    <button class="btn-green" style="width: 100%; margin-top: 20px;" onclick="finalizeQuizSuccess()">Weiter zur Karte</button>
+                </div>
+            `;
+            showOverlay(successHtml);
+        } else {
+            // --- FEHLER ---
+            let errorHtml = `
+                <div style="text-align: center; color: #1e293b;">
+                    <div style="font-size: 50px; margin-bottom: 10px;">🧐</div>
+                    <h2 style="color: #ef4444;">Fast geschafft!</h2>
+                    <p>Ein paar Dinge musst du dir noch einmal ansehen. Schau dir folgende Fragen nochmal genau an:</p>
+                    <div style="background: #fee2e2; color: #b91c1c; padding: 15px; border-radius: 10px; font-weight: bold; font-size: 1.2em; margin: 20px 0;">
+                        Frage: ${errors.join(", ")}
+                    </div>
+                    <p style="font-size: 0.9em; color: #64748b;">Kleiner Tipp: Lies dir die Tutorial-Texte in den Leveln nochmal durch.</p>
+                    <button class="btn-gray" style="width: 100%; margin-top: 20px;" onclick="closeOverlay()">Zurück zum Menü</button>
+                </div>
+            `;
+            showOverlay(errorHtml);
+        }
+    }
+
+    // Hilfsfunktion für den echten Abschluss
+    function finalizeQuizSuccess() {
+        console.log("Quiz erfolgreich abgeschlossen. Verarbeite Belohnung...");
+        
+        // 1. Wir holen uns die ID des aktuellen Quiz aus dem globalen State
+        const levelId = gameData.currentLevelNum; 
+        
+        // 2. Wir suchen das zugehörige Level-Objekt in deinen Spieldaten
+        const currentQuizDef = gameData.levels.find(l => l.id === levelId);
+
+        // DEBUG: Was wurde gefunden?
+        console.log("Quiz ID:", levelId);
+        console.log("Gefundene Definition:", currentQuizDef);
+
+        if (!currentQuizDef) {
+            console.error("Fehler: Quiz-Definition für ID " + levelId + " nicht gefunden.");
+            closeOverlay();
+            return;
+        }
+
+        // --- PUNKTE-LOGIK ---
+        let timesCompleted = gameData.completedLevels[levelId] || 0;
+        let pointsToAdd = (timesCompleted === 0) ? 15 : (timesCompleted === 1 ? 5 : 0);
+
+        gameData.score += pointsToAdd;
+        localStorage.setItem('robo_score', gameData.score);
+        
+        gameData.completedLevels[levelId] = timesCompleted + 1;
+        localStorage.setItem('completed_levels', JSON.stringify(gameData.completedLevels));
+
+        // --- FREISCHALT-LOGIK ---
+        
+        // A) Nächstes normales Level freischalten
+        if (levelId >= gameData.unlockedLevel) {
+            gameData.unlockedLevel = levelId + 1;
+            localStorage.setItem('unlocked_level', gameData.unlockedLevel);
+        }
+
+        // B) Practice-Level freischalten (wir nutzen die ID aus der Definition)
+        // Falls du in gameData.levels 'unlocksPractice: "P1"' stehen hast:
+        const pId = currentQuizDef.unlocksPractice; 
+        if (pId && !gameData.unlockedPractices.includes(pId)) {
+            gameData.unlockedPractices.push(pId);
+            localStorage.setItem('unlocked_practices', JSON.stringify(gameData.unlockedPractices));
+        }
+
+        // --- UI AKTUALISIEREN ---
+        if (pointsToAdd > 0) {
+            showFloatingPoints(pointsToAdd);
+        }
+
+        closeOverlay();
+        
+        // WICHTIG: Karte und Score sofort aktualisieren
+        renderLevelPath();
+        updateScoreDisplay();
+    }
+
+    function showFloatingPoints(amount) {
+        // Erstellt das Element
+        const el = document.createElement('div');
+        // Nutzt die neue CSS-Klasse für die zentrierte Positionierung
+        el.className = 'floating-points-centered';
+        // Setzt den Text (z.B. +15 🪙)
+        el.innerText = "+" + amount + " 🪙";
+        
+        // Fügt es dem Dokument hinzu
+        document.body.appendChild(el);
+        
+        // Entfernt es automatisch nach 1,8 Sekunden (Dauer der Animation)
+        setTimeout(() => {
+            el.remove();
+        }, 1800);
+    }
+
+    const rainbowColors = ['#ff0000', '#ff9900', '#ffff00', '#33ff00', '#0099ff', '#6633ff'];
+
+    function startSmoothTrail(duration) {
+        const robotElement = document.getElementById('robot');
+        const grid = document.getElementById('grid');
+        if (!robotElement || !grid) return;
+
+        // Alle 25ms einen neuen Punkt setzen für eine dichte Linie
+        const interval = setInterval(() => {
+            // Wir holen uns die ECHTEN Pixel-Koordinaten des Roboters während der Animation
+            const rect = robotElement.getBoundingClientRect();
+            const gridRect = grid.getBoundingClientRect();
+
+            // Position relativ zum Grid berechnen
+            const x = rect.left - gridRect.left;
+            const y = rect.top - gridRect.top;
+
+            // Wir rufen deine createTrail mit Pixelwerten auf
+            createTrailPixels(x, y);
+        }, 25);
+
+        // Nach Ablauf der Bewegungszeit das Zeichnen stoppen
+        setTimeout(() => clearInterval(interval), duration);
+    }
+
+    // Angepasste Trail-Funktion für Pixel-Werte
+    function createTrailPixels(x, y) {
+        const active = gameData.activeTrail;
+
+        if (!active) return;
+
+        if (active === 'trail_rainbow') {
+            spawnRainbowLayer(x, y);
+        } else if (active === 'trail_bubbles') {
+            spawnBubbleLayer(x, y);
+        } else if (active === 'trail_stardust') {
+        spawnStardustLayer(x, y);
+        } else if (active === 'trail_matrix') { 
+        spawnMatrixLayer(x, y);
+        } else if (active === 'trail_steps') {
+        spawnStepsLayer(x, y);
+        }
+    }
+
+    function spawnRainbowLayer(x, y) {
+        const grid = document.getElementById('grid');
+        if (!grid) return;
+
+        // Aktuelle Richtung holen (0=Rechts, 90=Runter, 180=Links, 270=Hoch)
+        let d = (robo.dir % 360 + 360) % 360;
+
+        // Grund-Offset, um den Schweif in die Mitte des Roboters zu setzen (z.B. +20px)
+        const centerX = x + 20;
+        const centerY = y + 20;
+
+        // Wir erstellen 6 Partikel gleichzeitig
+        for (let i = 0; i < rainbowColors.length; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'rainbow-trail-particle';
+            particle.style.backgroundColor = rainbowColors[i];
+
+            // Berechne den seitlichen Versatz (Offset) für diesen Farbstreifen
+            // 'i' geht von 0 bis 5. Wir zentrieren den Schweif, indem wir 2.5 abziehen.
+            // Das ergibt Offsets von -2.5, -1.5, -0.5, 0.5, 1.5, 2.5.
+            // Multipliziert mit dem Abstand (z.B. 4px) ergibt das die Breite.
+            const spread = 4; // Abstand zwischen den Farblinien
+            const offset = (i - 2.5) * spread;
+
+            let finalX = centerX;
+            let finalY = centerY;
+
+            // Versatz an die Laufrichtung anpassen
+            if (d === 0 || d === 180) { 
+                // Läuft horizontal -> Versatz ist vertikal (Y-Achse)
+                finalY += offset;
+            } else if (d === 90 || d === 270) {
+                // Läuft vertikal -> Versatz ist horizontal (X-Achse)
+                finalX += offset;
+            }
+
+            particle.style.left = finalX + 'px';
+            particle.style.top = finalY + 'px';
+
+            grid.appendChild(particle);
+
+            // Animation (Schrumpfen und Verblassen)
+            setTimeout(() => {
+                particle.style.transform = 'scale(0.1)';
+                particle.style.opacity = '0';
+            }, 10);
+
+            // Nach 500ms entfernen
+            setTimeout(() => {
+                particle.remove();
+            }, 2000);
+        }
+    }
+
+    function spawnBubbleLayer(x, y) {
+        const grid = document.getElementById('grid');
+        const bubble = document.createElement('img');
+        
+        // Pfad zu deiner SVG-Datei
+        bubble.src = 'images/soap_bubble.svg'; 
+        bubble.className = 'trail-bubble';
+
+        // Zufällige Größe zwischen 8px und 20px
+        const size = Math.random() * 12 + 8;
+        bubble.style.width = size + 'px';
+        bubble.style.height = size + 'px';
+
+        // Zufälliger Versatz (links, mittig, rechts)
+        // Wir nehmen einen Bereich von ca. -15px bis +15px seitlich zur Mitte
+        const sideOffset = (Math.random() - 0.5) * 30;
+        
+        // Richtung beachten (ähnlich wie beim Regenbogen)
+        let d = (robo.dir % 360 + 360) % 360;
+        let finalX = x + 20;
+        let finalY = y + 20;
+
+        if (d === 0 || d === 180) finalY += sideOffset;
+        else if (d === 90 || d === 270) finalX += sideOffset;
+
+        bubble.style.left = finalX + 'px';
+        bubble.style.top = finalY + 'px';
+
+        grid.appendChild(bubble);
+
+        // Animation starten
+        setTimeout(() => {
+            // Blasen steigen leicht auf und werden unsichtbar
+            bubble.style.transform = `translate(${(Math.random()-0.5)*20}px, -40px) scale(1.2)`;
+            bubble.style.opacity = '0';
+        }, 10);
+
+        // Nach 1.5 Sekunden entfernen (Blasen halten meist länger als Partikel)
+        setTimeout(() => bubble.remove(), 1500);
+    }
+
+    function spawnStardustLayer(x, y) {
+        const grid = document.getElementById('grid');
+        // Wir spawnen 2-3 kleine Sterne pro Intervall-Schritt für mehr Dichte
+        for (let i = 0; i < 2; i++) {
+            const star = document.createElement('div');
+            star.className = 'trail-stardust-particle';
+            
+            // Zufällige Gold- und Silbertöne
+            const colors = ['#FFF700', '#FFFFFF', '#FFD700', '#FFFACD'];
+            star.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+
+            // Zufällige Größe (sehr klein wirkt edler)
+            const size = Math.random() * 4 + 2; 
+            star.style.width = size + 'px';
+            star.style.height = size + 'px';
+
+            // Position mit Zufalls-Streuung um Robis Mitte herum
+            const spreadX = (Math.random() - 0.5) * 30;
+            const spreadY = (Math.random() - 0.5) * 30;
+            
+            star.style.left = (x + 20 + spreadX) + 'px';
+            star.style.top = (y + 20 + spreadY) + 'px';
+
+            grid.appendChild(star);
+
+            // Animation: Sanftes Absinken und Funkeln (Scale-Effekt)
+            setTimeout(() => {
+                const driftX = (Math.random() - 0.5) * 40; // Leichtes seitliches Wehen
+                const driftY = 20 + Math.random() * 30;    // Sinken nach unten
+                
+                star.style.transform = `translate(${driftX}px, ${driftY}px) scale(0) rotate(180deg)`;
+                star.style.opacity = '0';
+            }, 20);
+
+            setTimeout(() => star.remove(), 1000);
+        }
+    }
+
+    function spawnMatrixLayer(x, y) {
+        const grid = document.getElementById('grid');
+        
+        // Wir spawnen 2 Zeichen pro Schritt für den "Datenstrom"-Look
+        for (let i = 0; i < 2; i++) {
+            const bit = document.createElement('div');
+            bit.className = 'trail-matrix-particle';
+            
+            // Zufall zwischen 0 und 1
+            bit.innerText = Math.round(Math.random());
+
+            // Zufällige Größe für Tiefe (10px bis 18px)
+            const size = Math.random() * 8 + 10;
+            bit.style.fontSize = size + 'px';
+
+            // Position mit leichtem Versatz um Robi herum
+            const spreadX = (Math.random() - 0.5) * 35;
+            const spreadY = (Math.random() - 0.5) * 35;
+            
+            bit.style.left = (x + 20 + spreadX) + 'px';
+            bit.style.top = (y + 20 + spreadY) + 'px';
+
+            grid.appendChild(bit);
+
+            // Animation: Die Zahlen "fallen" ein Stück und verblassen digital
+            setTimeout(() => {
+                const drop = 20 + Math.random() * 20;
+                bit.style.transform = `translateY(${drop}px)`;
+                bit.style.opacity = '0';
+            }, 50);
+
+            setTimeout(() => bit.remove(), 800);
+        }
+    }
+
+    function spawnStepsLayer(x, y) {
+        const grid = document.getElementById('grid');
+        if (!grid) return;
+
+        const foot = document.createElement('div');
+        foot.className = 'trail-footprint';
+
+        // Normalisiere Richtung auf 0, 90, 180, 270
+        // 1. Normalisieren und auf den nächsten 90er runden
+        let d = robo.dir;
+
+        if (d === 360) d = 0; // 360 Grad ist wieder 0        
+        
+        const isLeftFoot = stepCounter % 2 === 0;
+        stepCounter++;
+
+        // --- MANUELLES RICHTUNGS-MAPPING ---
+        // Wir gehen davon aus, dass dein CSS-Fuß mit dem Zeh nach OBEN zeigt.
+        let rotation = 0;
+
+        if (d === 0) {       // RECHTS
+            rotation = 90;
+        } else if (d === 90) { // UNTEN
+            rotation = 180;
+        } else if (d === 180) { // LINKS
+            rotation = 270;
+        } else if (d === 270) { // OBEN
+            rotation = 0;
+        }
+
+        // Den "V-Winkel" für das Gehen hinzufügen
+        const toeIn = isLeftFoot ? -15 : 15;
+        rotation += toeIn;
+
+        // --- POSITIONIERUNG ---
+        let finalX = x + 20;
+        let finalY = y + 20;
+        const strideWidth = 10; 
+        const sideOffset = isLeftFoot ? -strideWidth : strideWidth;
+
+        // Seitlicher Versatz (damit die Füße nebeneinander sind)
+        if (d === 0) { // Horizontal laufen -> vertikal versetzen
+            finalY += sideOffset;
+        } else if (d === 180) { // LINKS: Versatz umkehren!
+            finalY -= sideOffset; 
+        } else if (d === 90) {  // UNTEN: Versatz umkehren!
+            finalX -= sideOffset;
+        } else if (d === 270) { // OBEN: Normaler Versatz (X)
+            finalX += sideOffset;
+        }
+
+        foot.style.left = finalX + 'px';
+        foot.style.top = finalY + 'px';
+        console.log(rotation);
+        foot.style.transform = `rotate(${rotation}deg) scale(0.8)`;
+
+        grid.appendChild(foot);
+
+        // Animation & Entfernen
+        setTimeout(() => { foot.style.opacity = '0'; }, 1500);
+        setTimeout(() => foot.remove(), 3000);
+    }
+
+    // Hilfsfunktion zum Überprüfen, ob ein bestimmter Block zum Lösen eines Levels genutzt wurde
+    function isBlockUsed(blockType) {
+        if (typeof workspace === 'undefined' || !workspace) return false;
+        
+        // Holt alle Blöcke, die aktuell im Workspace liegen
+        const allBlocks = workspace.getAllBlocks(false);
+        
+        // Prüft, ob mindestens einer den gesuchten Typ hat
+        return allBlocks.some(block => block.type === blockType);
+    }
 </script>
+<script src="shop-data.js"></script>
+<script src="shop-logic.js"></script>
 </body>
 </html>
