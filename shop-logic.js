@@ -146,10 +146,10 @@ function updatePlayerAppearance() {
     }
 
     // Wenn ein Skin gefunden wurde UND er ein Bild hat, nimm das.
-    // Sonst nimm das Standardbild 'images/robi_right.png'
+    // Sonst nimm das Standardbild 'robi_right.png'
     if (selectedItem && selectedItem.img) {
         playerImg.src = selectedItem.img;
     } else {
-        playerImg.src = 'images/robi_right.png';
+        playerImg.src = 'robi_right.png';
     }
 }
