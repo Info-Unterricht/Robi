@@ -312,7 +312,7 @@
 
             <div id="grid">
                 <div id="robot">
-                    <img id="player" src="images/robi_right.png">
+                    <img id="player" src="robi_right.png">
                 </div>
             </div>
 
@@ -972,7 +972,7 @@
             // 2. Schatz
             else if (config.treasure && x === config.treasure.x && y === config.treasure.y) {
                 const img = document.createElement('img');
-                img.src = 'images/treasure.png';
+                img.src = 'treasure.png';
                 img.style.width = '40px';  
                 img.style.height = '40px';
                 cell.appendChild(img);
@@ -2316,7 +2316,7 @@ function runStep() {
         const bubble = document.createElement('img');
         
         // Pfad zu deiner SVG-Datei
-        bubble.src = 'images/soap_bubble.svg'; 
+        bubble.src = 'soap_bubble.svg'; 
         bubble.className = 'trail-bubble';
 
         // Zufällige Größe zwischen 8px und 20px
