@@ -14,10 +14,4 @@ const SHOP_ITEMS = {
         { id: 'trail_matrix', name: 'Matrix-Code', price: 50, icon: '📟' },
         { id: 'trail_steps', name: 'Fußspuren', price: 60, icon: '👣' }
     ],
-    welten: [
-        { id: 'world_space', name: 'Weltraum', price: 100, icon: '🚀' }
-    ],
-    upgrades: [
-        { id: 'radar', name: 'Hai-Radar', price: 15, icon: '📡' }
-    ]
 };
