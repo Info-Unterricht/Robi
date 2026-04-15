@@ -373,6 +373,7 @@
         unlockedPractices: JSON.parse(localStorage.getItem('unlocked_practices')) || [], 
         score: parseInt(localStorage.getItem('robo_score')) || 0, // Lädt gespeicherte Punkte
         completedLevels: JSON.parse(localStorage.getItem('completed_levels')) || {}, // Speichert: { "levelId": Anzahl_Bestanden }
+        collectedTreasures: JSON.parse(localStorage.getItem('collected_treasures')) || {}, 
         activeSkin: localStorage.getItem('robo_activeSkin') || 'default', 
         activeTrail: localStorage.getItem('robo_activeTrail') || null,
         levels: [
@@ -384,7 +385,7 @@
             { id: 5, start: {x: 7, y: 5}, island: {x: 4, y: 7}, sharks: null, treasure: null, blocks: ['move_forward', 'turn_left', 'turn_right'], tutorials: ['quiz'] },
 
             { id: 6, type: 'quiz', unlocksPractice: 'P1', questions: [
-                { q: "Was macht 'vörwärts'?", a: ["Robi dreht sich", "Robi geht einen Schritt nach vorne", "Robi springt"], correct: [1], multiple: false },
+                { q: "Was macht 'vorwärts'?", a: ["Robi dreht sich", "Robi geht einen Schritt nach vorne", "Robi springt"], correct: [1], multiple: false },
                 { q: "Welche Blöcke sind blau?", a: ["Bewegung", "Sensoren", "Schleifen"], correct: [0], multiple: false },
                 { q: "Wozu nutzt man die lilafabenen Blöcke?", a: ["Zum fragen, wo Robi steht", "Um 2 Schritt zu gehen", "Um Robi nach links oder rechts zu drehen"], correct: [2], multiple: false }
             ] },
@@ -749,6 +750,7 @@
     // Funktionen für eigene Blöcke
     function collectTreasure() {
         const config = currentLevelConfig;
+        const levelId = gameData.currentLevelNum; 
         
         // 1. Prüfung: Steht Robi auf dem Feld, auf dem der Schatz laut Daten liegt?
         if (config && config.treasure && robo.x === config.treasure.x && robo.y === config.treasure.y) {
@@ -762,16 +764,18 @@
             if (img) img.remove();
             
             // Wie oft wurde genau dieses Level schon BEENDET?
-            let timesCompleted = gameData.completedLevels[gameData.currentLevelNum] || 0;
-            let treasurePoints = 0;
+            let timesTreasured = gameData.collectedTreasures[levelId] || 0;            let treasurePoints = 0;
 
-            if (timesCompleted === 0) {
+            if (timesTreasured === 0) {
                 treasurePoints = 2; // Erstes Mal: Volle Beute
-            } else if (timesCompleted === 1) {
+            } else if (timesTreasured === 1) {
                 treasurePoints = 1; // Zweites Mal: Kleiner Bonus
             } else {
                 treasurePoints = 0; // Ab dem dritten Mal: Nur noch Ehre, kein Gold
             }
+
+            gameData.collectedTreasures[levelId] = timesTreasured + 1;
+            localStorage.setItem('collected_treasures', JSON.stringify(gameData.collectedTreasures));
 
             // Punkte nur addieren und anzeigen, wenn es welche gibt
             if (treasurePoints > 0) {
